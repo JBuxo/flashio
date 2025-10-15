@@ -70,7 +70,7 @@ export function ExperienceChart() {
                     </tspan>
                     <tspan
                       x={cx}
-                      y={cy + 24}
+                      y={cy! + 24}
                       className="fill-muted-foreground text-sm"
                     >
                       XP
