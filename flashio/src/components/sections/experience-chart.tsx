@@ -1,88 +1,72 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+
 import {
-  Label,
-  PolarGrid,
-  PolarRadiusAxis,
-  RadialBar,
-  RadialBarChart,
-} from "recharts";
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
 
-import { ChartConfig, ChartContainer } from "@/components/ui/chart";
+export const description = "Experience breakdown by day";
 
-export const description = "A radial chart with text";
-
-const chartData = [{ xp: 24000, fill: "var(--chart-5)" }];
-const max_xp = 100000;
+const chartData = Array.from({ length: 7 }, (_, i) => ({
+  day: i + 1,
+  experience: Math.floor(Math.random() * 500) + 50,
+}));
 
 const chartConfig = {
-  xp: {
+  experience: {
     label: "Experience",
-    color: "var(--color-experience)",
+    color: "var(--accent)",
   },
 } satisfies ChartConfig;
 
 export function ExperienceChart() {
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="mx-auto aspect-square max-h-[250px]"
-    >
-      <RadialBarChart
+    <ChartContainer config={chartConfig}>
+      <AreaChart
+        accessibilityLayer
         data={chartData}
-        startAngle={90}
-        endAngle={90 + (chartData[0].xp / max_xp) * 360}
-        innerRadius={80}
-        outerRadius={110}
+        margin={{
+          left: 0,
+          right: 32,
+        }}
       >
-        <PolarGrid
-          gridType="circle"
-          radialLines={false}
-          stroke="none"
-          className="first:fill-muted last:fill-background"
-          polarRadius={[86, 74]}
+        {/* <CartesianGrid vertical={false} /> */}
+        <XAxis
+          dataKey="month"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tickFormatter={(value) => value.slice(0, 3)}
         />
-        <RadialBar
-          dataKey="xp"
-          background
-          cornerRadius={10}
-          fill="var(--color-experience)"
+        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+        <defs>
+          <linearGradient id="fillExperience" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="60%"
+              stopColor="var(--color-experience)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="100%"
+              stopColor="var(--color-experience)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+        </defs>
+
+        <Area
+          dataKey="experience"
+          type="natural"
+          fill="url(#fillExperience)"
+          fillOpacity={0.4}
+          stroke="var(--color-experience)"
+          stackId="a"
         />
-        <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
-          <Label
-            content={({ viewBox }) => {
-              if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                const { cx, cy } = viewBox;
-                return (
-                  <text
-                    x={cx}
-                    y={cy}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                  >
-                    <tspan
-                      x={cx}
-                      y={cy}
-                      className="fill-foreground text-4xl font-bold"
-                    >
-                      {chartData[0].xp}
-                    </tspan>
-                    <tspan
-                      x={cx}
-                      y={cy! + 24}
-                      className="fill-muted-foreground text-sm"
-                    >
-                      XP
-                    </tspan>
-                  </text>
-                );
-              }
-              return null;
-            }}
-          />
-        </PolarRadiusAxis>
-      </RadialBarChart>
+      </AreaChart>
     </ChartContainer>
   );
 }
