@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/carousel";
 import { ExperienceChart } from "@/components/sections/experience-chart";
 import GameCard from "@/components/sections/game-card";
+import { GameSelector } from "@/components/sections/game-selector";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -31,26 +32,9 @@ export default function Home() {
     <div className="min-h-screen flex flex-col p-4 pt-0">
       <div className="mt-4 mb-4 font-mansalva">Flashio</div>
       <ExperienceChart />
-      <div className="flex-1 flex flex-col mt-8">
+      <div className="mt-8 flex flex-col flex-1">
         <div className="text-2xl font-semibold">Earn Points</div>
-        <Carousel className="mt-4 flex-1 flex flex-col">
-          <CarouselContent className="h-full">
-            <CarouselItem className="h-full">
-              <GameCard
-                title={"Easy"}
-                description={"Play an easy game"}
-                reward={100}
-                backgroundColors={[]}
-                isLocked={false}
-              />
-            </CarouselItem>
-
-            {/* <CarouselItem>Easy (100 PassPoints)</CarouselItem> */}
-            {/* <CarouselItem>Normal (200 PassPoints)</CarouselItem>
-            <CarouselItem>Hard (300 PassPoints)</CarouselItem>
-            <CarouselItem>Review (50 PassPoints)</CarouselItem> */}
-          </CarouselContent>
-        </Carousel>
+        <GameSelector />
       </div>
     </div>
   );
