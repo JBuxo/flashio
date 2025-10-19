@@ -1,72 +1,85 @@
 "use client";
 
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
-
+import { TrendingUp } from "lucide-react";
 import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+  Label,
+  PolarGrid,
+  PolarRadiusAxis,
+  RadialBar,
+  RadialBarChart,
+} from "recharts";
 
-export const description = "Experience breakdown by day";
+import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
-const chartData = Array.from({ length: 7 }, (_, i) => ({
-  day: i + 1,
-  experience: Math.floor(Math.random() * 500) + 50,
-}));
+export const description = "User Experience Chart";
+
+const chartData = [{ experience: 200, fill: "var(--color-experience)" }];
 
 const chartConfig = {
   experience: {
     label: "Experience",
-    color: "var(--accent)",
+    color: "var(--chart-2)",
   },
 } satisfies ChartConfig;
 
 export function ExperienceChart() {
   return (
-    <ChartContainer config={chartConfig}>
-      <AreaChart
-        accessibilityLayer
-        data={chartData}
-        margin={{
-          left: 0,
-          right: 32,
-        }}
+    <>
+      <ChartContainer
+        config={chartConfig}
+        className="mx-auto aspect-square min-w-full max-h-[250px]"
       >
-        {/* <CartesianGrid vertical={false} /> */}
-        <XAxis
-          dataKey="month"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          tickFormatter={(value) => value.slice(0, 3)}
-        />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-        <defs>
-          <linearGradient id="fillExperience" x1="0" y1="0" x2="0" y2="1">
-            <stop
-              offset="60%"
-              stopColor="var(--color-experience)"
-              stopOpacity={0.8}
+        <RadialBarChart
+          data={chartData}
+          startAngle={90}
+          endAngle={250}
+          innerRadius={87}
+          outerRadius={150}
+        >
+          <PolarGrid
+            gridType="circle"
+            radialLines={false}
+            stroke="none"
+            className="first:fill-muted last:fill-background"
+            polarRadius={[100, 74]}
+          />
+          <RadialBar dataKey="experience" background cornerRadius={10} />
+          <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+            <Label
+              content={({ viewBox }) => {
+                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                  return (
+                    <text
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      <tspan
+                        x={viewBox.cx}
+                        y={viewBox.cy}
+                        className="fill-foreground text-4xl font-bold"
+                      >
+                        {chartData[0].experience.toLocaleString()}
+                      </tspan>
+                      <tspan
+                        x={viewBox.cx}
+                        y={(viewBox.cy || 0) + 24}
+                        className="fill-muted-foreground"
+                      >
+                        PassPoints
+                      </tspan>
+                    </text>
+                  );
+                }
+              }}
             />
-            <stop
-              offset="100%"
-              stopColor="var(--color-experience)"
-              stopOpacity={0.1}
-            />
-          </linearGradient>
-        </defs>
-
-        <Area
-          dataKey="experience"
-          type="natural"
-          fill="url(#fillExperience)"
-          fillOpacity={0.4}
-          stroke="var(--color-experience)"
-          stackId="a"
-        />
-      </AreaChart>
-    </ChartContainer>
+          </PolarRadiusAxis>
+        </RadialBarChart>
+      </ChartContainer>
+      <div className="bg-accent  p-4 rounded-xl text-center">
+        <strong>100</strong> more PassPoints to level up
+      </div>
+    </>
   );
 }
