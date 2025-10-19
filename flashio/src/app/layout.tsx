@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Lobster, Londrina_Solid, Mansalva } from "next/font/google";
+import { Mansalva } from "next/font/google";
 import "./globals.css";
 
 const mansalva = Mansalva({

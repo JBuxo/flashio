@@ -31,8 +31,8 @@ export default function Login() {
     try {
       await loginWithEmail(emailAddress);
       setMessage("Magic link sent! Check your email.");
-    } catch (err: any) {
-      setMessage(err.message || "Something went wrong.");
+    } catch (err) {
+      setMessage((err as Error)?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }

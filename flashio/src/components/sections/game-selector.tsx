@@ -5,25 +5,67 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import GameCard from "./game-card";
+import GameCard, { GameCardProps, levelOrder, thresholds } from "./game-card";
+import { getUserLevel } from "@/lib/utils";
 
-export function GameSelector() {
+const gameCards: GameCardProps[] = [
+  {
+    title: "Easy",
+    description: "Easy Quiz",
+    reward: 10,
+    backgroundColor: "hsl(150, 52%, 51%)",
+    level: "beginner",
+  },
+  {
+    title: "Medium",
+    description: "Medium Quiz",
+    reward: 50,
+    backgroundColor: "hsl(23, 95%, 52%)",
+    level: "intermediate",
+  },
+  {
+    title: "Hard",
+    description: "Hard Quiz",
+    reward: 100,
+    backgroundColor: "hsl(2, 80%, 47%)",
+    level: "pro",
+  },
+  {
+    title: "Review",
+    description: "Review Quiz",
+    reward: 5,
+    backgroundColor: "hsl(208, 100%, 51%)",
+    level: "beginner",
+  },
+];
+
+export function GameSelector({ passPoints }: { passPoints: number }) {
+  const userLevel = getUserLevel(passPoints);
   return (
     <Carousel>
-      <CarouselContent className="h-full">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <CarouselItem key={index} className="h-full">
-            <div className="p-1 h-[50vh]">
-              <GameCard
-                title=""
-                description=""
-                reward={0}
-                backgroundColors={""}
-                isLocked={false}
-              />
-            </div>
-          </CarouselItem>
-        ))}
+      <CarouselContent className="h-full ">
+        {gameCards.map((gameCard, index) => {
+          const isLocked =
+            levelOrder.indexOf(userLevel) < levelOrder.indexOf(gameCard.level);
+          return (
+            <CarouselItem
+              key={index}
+              className="h-full pl-4 basis-[85%] md:basis-[45%] lg:basis-1/4"
+            >
+              <div className="p-1 h-[50vh]">
+                <GameCard
+                  title={gameCard.title}
+                  description={gameCard.description}
+                  reward={gameCard.reward}
+                  backgroundColor={gameCard.backgroundColor} // make sure this is a hsl like "hsl(150, 52%, 51%)"
+                  level={gameCard.level}
+                  isLocked={isLocked}
+                  userLevel={userLevel}
+                />
+              </div>
+            </CarouselItem>
+          );
+        })}
       </CarouselContent>
     </Carousel>
   );
