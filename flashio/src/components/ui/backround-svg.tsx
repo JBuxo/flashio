@@ -1,11 +1,5 @@
-export default function BackgroundSvg({
-  color,
-  level,
-}: {
-  color: string;
-  level?: string;
-}) {
-  let colorVars = [];
+export default function BackgroundSvg({ color }: { color: string }) {
+  const colorVars = [];
   const numOfColors = 5;
 
   const hslMatch = color.match(/hsl\((\d+),\s*(\d+)%?,\s*(\d+)%?\)/); // yeah I used AI for this tbh, it expects a string shaped like hsl(H, S%, L%)
@@ -21,7 +15,7 @@ export default function BackgroundSvg({
 
   //   Acutally apply the adjustments
   for (let i = 0; i < numOfColors; i++) {
-    let newLightness = Math.max(0, Math.min(100, l + adjustments[i]));
+    const newLightness = Math.max(0, Math.min(100, l + adjustments[i]));
     colorVars.push(`hsl(${h}, ${s}%, ${newLightness}%)`);
   }
 

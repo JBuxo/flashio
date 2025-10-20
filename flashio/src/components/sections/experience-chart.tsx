@@ -1,6 +1,5 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
 import {
   Label,
   PolarGrid,
@@ -27,7 +26,7 @@ export function ExperienceChart() {
     <>
       <ChartContainer
         config={chartConfig}
-        className="mx-auto aspect-square min-w-full max-h-[250px]"
+        className="mx-auto min-w-full min-h-fit"
       >
         <RadialBarChart
           data={chartData}
@@ -77,7 +76,7 @@ export function ExperienceChart() {
           </PolarRadiusAxis>
         </RadialBarChart>
       </ChartContainer>
-      <div className="bg-accent  p-4 rounded-xl text-center">
+      <div className="bg-accent mt-4 p-4 rounded-xl text-center">
         <strong>100</strong> more PassPoints to level up
       </div>
     </>

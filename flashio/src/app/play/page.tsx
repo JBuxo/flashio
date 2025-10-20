@@ -1,9 +1,10 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import PlayClient from "./playClient";
 
 export default function Playpage() {
-  const searchParams = useSearchParams();
-  const level = searchParams.get("level");
-  return <div>you are playing {level} game </div>;
+  return (
+    <Suspense fallback={"loading..."}>
+      <PlayClient />
+    </Suspense>
+  );
 }

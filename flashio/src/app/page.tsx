@@ -5,6 +5,7 @@ import { supabase } from "@/supabase/client";
 import { ExperienceChart } from "@/components/sections/experience-chart";
 import { GameSelector } from "@/components/sections/game-selector";
 import { User } from "@supabase/supabase-js";
+import { thresholds } from "@/components/sections/game-card";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,7 +24,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col p-4 pt-0">
+    <div className="min-h-screen max-h-screen flex flex-col p-4 pt-0">
       <div className="flex justify-between items-center mt-4 mb-4 ">
         <div className="font-mansalva">Flashio</div>
         <div className="rounded-sm bg-accent p-1 size-10 aspect-square flex items-center justify-center">
@@ -32,6 +33,22 @@ export default function Home() {
       </div>
 
       <ExperienceChart />
+      <div>
+        <h2>Dont'Forget:</h2>
+        {/* <ul className="grid grid-cols-2">
+          <li>Beginner</li>
+          <li>Intermediate</li>
+          <li>Pro</li>
+          <li>GOAT</li>
+        </ul> */}
+        {/* {thresholds.map(value) => (
+          <li>{thresholds[index]</li>
+        )} */}
+
+        {JSON.stringify(thresholds)}
+        {/* TODO: Finish from here */}
+        <pre>{Object.keys(thresholds)}</pre>
+      </div>
       <div className="mt-8 flex flex-col flex-1">
         <div className="text-2xl font-semibold mb-2">Earn Points</div>
         <GameSelector passPoints={passPoints} />

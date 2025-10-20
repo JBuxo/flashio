@@ -1,4 +1,4 @@
-import { LockIcon, PlayIcon, SparklesIcon } from "lucide-react";
+import { LockIcon, SparklesIcon } from "lucide-react";
 import BackgroundSvg from "../ui/backround-svg";
 import { Button } from "../ui/button";
 import Link from "next/link";
@@ -20,7 +20,7 @@ export const thresholds = {
   intermediate: 500,
   pro: 1000,
   goat: 10000,
-};
+} as const;
 
 export default function GameCard({ ...props }: GameCardProps) {
   return (

@@ -5,7 +5,7 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import GameCard, { GameCardProps, levelOrder, thresholds } from "./game-card";
+import GameCard, { GameCardProps, levelOrder } from "./game-card";
 import { getUserLevel } from "@/lib/utils";
 
 const gameCards: GameCardProps[] = [
@@ -52,7 +52,7 @@ export function GameSelector({ passPoints }: { passPoints: number }) {
               key={index}
               className="h-full pl-4 basis-[85%] md:basis-[45%] lg:basis-1/4"
             >
-              <div className="p-1 h-[50vh]">
+              <div className="p-1 h-96">
                 <GameCard
                   title={gameCard.title}
                   description={gameCard.description}
