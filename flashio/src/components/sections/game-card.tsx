@@ -8,6 +8,7 @@ export interface GameCardProps {
   description: string;
   reward: number;
   backgroundColor: string;
+  cost: number;
   level: "beginner" | "intermediate" | "pro" | "goat";
   userLevel?: "beginner" | "intermediate" | "pro" | "goat";
   isLocked?: boolean;
@@ -24,22 +25,22 @@ export const thresholds = {
 
 export default function GameCard({ ...props }: GameCardProps) {
   return (
-    <div className="h-full w-full rounded-xl overflow-hidden flex flex-col relative ">
+    <div className="h-[40vh] w-full rounded-xl overflow-hidden flex flex-col relative ">
       <div className="absolute right-0 left-0">
         <BackgroundSvg color={props.backgroundColor} />
       </div>
 
-      <div className="z-10 p-6 h-full backdrop-blur-sm">
+      <div className="z-10 p-6 h-full backdrop-blur-sm ">
         <h1 className="text-4xl ">{props.title}</h1>
         <div className="mt-4 text-xl">{props.description}</div>
         <div className="text-3xl">{props.reward}</div>
         <Button
-          className={`absolute bottom-4 left-4 right-4 h-16 text-lg`}
+          className={`absolute left-6 right-6 bottom-6 h-16`}
           size={"lg"}
           style={{ backgroundColor: props.backgroundColor }}
           asChild
         >
-          <Link href={`/play?level=${props.level}`}>
+          <Link href={`/api-fetch?level=${props.level}`}>
             Play <SparklesIcon className="size-5" />
           </Link>
         </Button>

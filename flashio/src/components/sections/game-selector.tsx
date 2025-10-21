@@ -13,6 +13,7 @@ const gameCards: GameCardProps[] = [
     title: "Easy",
     description: "Easy Quiz",
     reward: 10,
+    cost: 0,
     backgroundColor: "hsl(150, 52%, 51%)",
     level: "beginner",
   },
@@ -20,6 +21,7 @@ const gameCards: GameCardProps[] = [
     title: "Medium",
     description: "Medium Quiz",
     reward: 50,
+    cost: 10,
     backgroundColor: "hsl(23, 95%, 52%)",
     level: "intermediate",
   },
@@ -27,6 +29,7 @@ const gameCards: GameCardProps[] = [
     title: "Hard",
     description: "Hard Quiz",
     reward: 100,
+    cost: 20,
     backgroundColor: "hsl(2, 80%, 47%)",
     level: "pro",
   },
@@ -34,15 +37,17 @@ const gameCards: GameCardProps[] = [
     title: "Review",
     description: "Review Quiz",
     reward: 5,
+    cost: 0,
     backgroundColor: "hsl(208, 100%, 51%)",
     level: "beginner",
   },
 ];
 
-export function GameSelector({ passPoints }: { passPoints: number }) {
-  const userLevel = getUserLevel(passPoints);
+export function GameSelector({ xp }: { xp: number }) {
+  const userLevel = getUserLevel(xp);
+
   return (
-    <Carousel>
+    <Carousel className="h-full ">
       <CarouselContent className="h-full ">
         {gameCards.map((gameCard, index) => {
           const isLocked =
@@ -52,9 +57,10 @@ export function GameSelector({ passPoints }: { passPoints: number }) {
               key={index}
               className="h-full pl-4 basis-[85%] md:basis-[45%] lg:basis-1/4"
             >
-              <div className="p-1 h-96">
+              <div className="p-1 h-full">
                 <GameCard
                   title={gameCard.title}
+                  cost={0}
                   description={gameCard.description}
                   reward={gameCard.reward}
                   backgroundColor={gameCard.backgroundColor} // make sure this is a hsl like "hsl(150, 52%, 51%)"

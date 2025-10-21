@@ -66,7 +66,7 @@ export function ExperienceChart() {
                         y={(viewBox.cy || 0) + 24}
                         className="fill-muted-foreground"
                       >
-                        PassPoints
+                        XP
                       </tspan>
                     </text>
                   );
