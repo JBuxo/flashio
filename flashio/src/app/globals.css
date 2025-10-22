@@ -41,7 +41,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-mansalva: var(--font-mansalva);
+  --font-londrina-shadow: var(--font-londrina-shadow);
+  --font-londrina-solid: var(--font-londrina-solid);
 }
 
 :root {

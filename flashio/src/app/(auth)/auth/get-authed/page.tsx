@@ -40,13 +40,13 @@ export default function Login() {
 
   return (
     <div className="max-w-sm w-full">
-      <Image
+      {/* <Image
         src={"/images/flashio-logo.svg"}
         alt={""}
         width={300}
         height={200}
         className="mx-auto"
-      />
+      /> */}
       <Card className=" mt-8">
         <CardHeader>
           <CardTitle>Get Authed so we can get to work</CardTitle>

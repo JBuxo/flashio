@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Mansalva } from "next/font/google";
+import { Londrina_Shadow, Londrina_Solid, Mansalva } from "next/font/google";
 import "./globals.css";
 
-const mansalva = Mansalva({
-  variable: "--font-mansalva",
+const londrinaShadow = Londrina_Shadow({
+  variable: "--font-londrina-shadow",
+  weight: ["400"],
+});
+
+const londrinaSolid = Londrina_Solid({
+  variable: "--font-londrina-solid",
   weight: ["400"],
 });
 
@@ -19,7 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${mansalva.variable} antialiased`}>{children}</body>
+      <body
+        className={`${londrinaShadow.variable} ${londrinaSolid.variable} antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

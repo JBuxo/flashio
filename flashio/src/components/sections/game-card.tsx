@@ -9,18 +9,33 @@ export interface GameCardProps {
   reward: number;
   backgroundColor: string;
   cost: number;
-  level: "beginner" | "intermediate" | "pro" | "goat";
-  userLevel?: "beginner" | "intermediate" | "pro" | "goat";
+  level: "spark" | "seeker" | "scholar" | "thinker" | "mastermind" | "sage";
+  userLevel?:
+    | "spark"
+    | "seeker"
+    | "scholar"
+    | "thinker"
+    | "mastermind"
+    | "sage";
   isLocked?: boolean;
 }
 
-export const levelOrder = ["beginner", "intermediate", "pro", "goat"] as const;
+export const levelOrder = [
+  "spark",
+  "seeker",
+  "scholar",
+  "thinker",
+  "mastermind",
+  "sage",
+] as const;
 
-export const thresholds = {
-  beginner: 0,
-  intermediate: 500,
-  pro: 1000,
-  goat: 10000,
+export const ranks = {
+  spark: 0,
+  seeker: 500,
+  scholar: 1000,
+  thinker: 2500,
+  mastermind: 5000,
+  sage: 10000,
 } as const;
 
 export default function GameCard({ ...props }: GameCardProps) {
@@ -47,12 +62,11 @@ export default function GameCard({ ...props }: GameCardProps) {
       </div>
 
       {props.isLocked && (
-        <div className="z-20 absolute right-0 left-0 bottom-0 top-0 bg-white/10 flex flex-col items-center justify-center backdrop-blur-md">
-          <LockIcon className="size-16 z-20 stroke-1" />
-          <p className="text-center mt-4 max-w-48">
-            You need to be at least
-            <strong> {props.level.toUpperCase()}</strong> to unlock this
-            gamemode
+        <div className="z-20 absolute inset-0 bg-black/30 flex flex-col items-center justify-center backdrop-blur-md rounded-xl">
+          <LockIcon className="size-12 mb-2 text-white/80" />
+          <p className="text-center text-white text-sm px-4">
+            Reach <strong>{props.level.toUpperCase()}</strong> to unlock this
+            pack
           </p>
         </div>
       )}
