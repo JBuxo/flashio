@@ -74,12 +74,12 @@ export default function RankBadge({ xp }: { xp: number }) {
     <>
       <RayColorProvider rayColor={rayColor} />
       <div className="relative flex items-center justify-center -mx-4 h-[30dvh]">
-        <div className="absolute inset-0 flex items-center justify-center z-10   max-h-full aspect-square mx-auto">
+        <div className="absolute inset-0 flex items-center justify-center z-0 bg-white/40 rounded-full blur-2xl  max-h-full aspect-square mx-auto">
           {/* Sparkle effect, I will add a svg later so just show a div for now */}
           {sparkles.map((sparkle) => (
             <div
               key={sparkle.id}
-              className="absolute w-4 h-4 bg-white"
+              className="absolute bg-white"
               style={{ left: `${sparkle.x}%`, top: `${sparkle.y}%` }}
             ></div>
           ))}

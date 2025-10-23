@@ -73,28 +73,23 @@ export function GameSelector({ xp }: { xp: number }) {
   const userLevel = getUserLevel(xp);
 
   return (
-    <Carousel className="h-full ">
-      <CarouselContent className="h-full ">
+    <Carousel>
+      <CarouselContent className="mr-2 pl-2">
         {gameCards.map((gameCard, index) => {
           const isLocked =
             levelOrder.indexOf(userLevel) < levelOrder.indexOf(gameCard.level);
           return (
-            <CarouselItem
-              key={index}
-              className="h-full pl-4 basis-[85%] md:basis-[45%] lg:basis-1/4"
-            >
-              <div className="p-1 h-full">
-                <GameCard
-                  title={gameCard.title}
-                  cost={0}
-                  description={gameCard.description}
-                  reward={gameCard.reward}
-                  backgroundColor={gameCard.backgroundColor} // make sure this is a hsl like "hsl(150, 52%, 51%)"
-                  level={gameCard.level}
-                  isLocked={isLocked}
-                  userLevel={userLevel}
-                />
-              </div>
+            <CarouselItem key={index} className="basis-[75%]">
+              <GameCard
+                title={gameCard.title}
+                cost={0}
+                description={gameCard.description}
+                reward={gameCard.reward}
+                backgroundColor={gameCard.backgroundColor}
+                level={gameCard.level}
+                isLocked={isLocked}
+                userLevel={userLevel}
+              />
             </CarouselItem>
           );
         })}

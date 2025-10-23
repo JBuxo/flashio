@@ -25,8 +25,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-[100dvh] flex flex-col p-4 pt-0">
-      <div className="flex justify-between items-center mt-4 mb-4 ">
+    <div className="h-[100dvh] flex flex-col pt-0">
+      <div className="flex justify-between items-center mt-4 mb-4 mx-4">
         <BrandedText className="text-4xl" color="text-pink-500">
           Flashio
         </BrandedText>
@@ -34,11 +34,11 @@ export default function Home() {
           {user?.email?.charAt(0).toUpperCase()}
         </div>
       </div>
-      <div>
+      <div className="px-8">
         <RankBadge xp={xp} />
       </div>
 
-      <div>
+      {/* <div>
         <input
           type="range"
           name="xp-slider"
@@ -48,14 +48,12 @@ export default function Home() {
           value={xp}
           onChange={(e) => setXp(Number(e.target.value))}
         />
-      </div>
+      </div> */}
 
       <div className="mt-8 flex flex-col flex-1">
-        <div className="text-2xl font-semibold mb-4">Earn Points</div>
+        <div className="text-2xl font-semibold mb-4 px-4">Earn Points</div>
 
-        <div className="h-full">
-          <GameSelector xp={xp} />
-        </div>
+        <GameSelector xp={xp} />
       </div>
     </div>
   );

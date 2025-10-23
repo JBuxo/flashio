@@ -40,12 +40,12 @@ export const ranks = {
 
 export default function GameCard({ ...props }: GameCardProps) {
   return (
-    <div className="h-[40dvh] w-full rounded-xl overflow-hidden flex flex-col relative ">
+    <div className="h-[40dvh] w-full overflow-hidden flex flex-col relative ">
       <div className="absolute right-0 left-0">
         <BackgroundSvg color={props.backgroundColor} />
       </div>
 
-      <div className="z-10 p-6 h-full backdrop-blur-sm ">
+      <div className="z-10 p-6 h-full">
         <h1 className="text-4xl ">{props.title}</h1>
         <div className="mt-4 text-xl">{props.description}</div>
         <div className="text-3xl">{props.reward}</div>
@@ -62,7 +62,7 @@ export default function GameCard({ ...props }: GameCardProps) {
       </div>
 
       {props.isLocked && (
-        <div className="z-20 absolute inset-0 bg-black/30 flex flex-col items-center justify-center backdrop-blur-md rounded-xl">
+        <div className="z-20 absolute inset-0 bg-black/30 flex flex-col items-center justify-center backdrop-blur-md">
           <LockIcon className="size-12 mb-2 text-white/80" />
           <p className="text-center text-white text-sm px-4">
             Reach <strong>{props.level.toUpperCase()}</strong> to unlock this

@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ background: "var(--ray-color)" }}>
       <body
         className={`${londrinaShadow.variable} ${londrinaSolid.variable} antialiased`}
         style={{ background: "var(--ray-color)" }}
