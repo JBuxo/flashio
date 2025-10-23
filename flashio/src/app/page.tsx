@@ -9,7 +9,8 @@ import BrandedText from "@/components/ui/branded-text";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
-  const xp = 0;
+  // let xp = 0;
+  const [xp, setXp] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -24,11 +25,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="h-screen max-h-screen flex flex-col p-4 pt-0">
+    <div className="h-[100dvh] flex flex-col p-4 pt-0">
       <div className="flex justify-between items-center mt-4 mb-4 ">
-        {/* <div className="font-londrina-shadow text-3xl bg-pink-400 p-2  font-black">
-          Flashio
-        </div> */}
         <BrandedText className="text-4xl" color="text-pink-500">
           Flashio
         </BrandedText>
@@ -38,6 +36,18 @@ export default function Home() {
       </div>
       <div>
         <RankBadge xp={xp} />
+      </div>
+
+      <div>
+        <input
+          type="range"
+          name="xp-slider"
+          id="xp-slider"
+          max={10001}
+          step={100}
+          value={xp}
+          onChange={(e) => setXp(Number(e.target.value))}
+        />
       </div>
 
       <div className="mt-8 flex flex-col flex-1">

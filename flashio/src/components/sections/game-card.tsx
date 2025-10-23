@@ -40,7 +40,7 @@ export const ranks = {
 
 export default function GameCard({ ...props }: GameCardProps) {
   return (
-    <div className="h-[40vh] w-full rounded-xl overflow-hidden flex flex-col relative ">
+    <div className="h-[40dvh] w-full rounded-xl overflow-hidden flex flex-col relative ">
       <div className="absolute right-0 left-0">
         <BackgroundSvg color={props.backgroundColor} />
       </div>

@@ -1,8 +1,14 @@
+"use clien";
 import { getUserLevel } from "@/lib/utils";
 import Image from "next/image";
 import BrandedText from "../ui/branded-text";
+import RayColorProvider from "../providers/ray-color-provider";
+import { useEffect, useState } from "react";
+
+type Sparkle = { id: number; x: number; y: number };
 
 export default function RankBadge({ xp }: { xp: number }) {
+  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const userLevel = getUserLevel(xp);
   let rankImage;
   let rayColor;
@@ -20,7 +26,7 @@ export default function RankBadge({ xp }: { xp: number }) {
       rankImage = "scholar-gem.png";
       rayColor = "oklch(60.6% 0.25 292.717)";
       break;
-    case "thinker": //broken
+    case "thinker":
       rankImage = "thinker-gem.png";
       rayColor = "oklch(0.8703 0.1524 84.08)";
       break;
@@ -34,16 +40,51 @@ export default function RankBadge({ xp }: { xp: number }) {
       break;
   }
 
+  useEffect(() => {
+    let idCounter = 0;
+
+    const interval = setInterval(() => {
+      setSparkles((prev) => {
+        const newSparkles = [...prev];
+
+        const sparklesToAdd = Math.min(
+          3 - newSparkles.length,
+          Math.floor(Math.random() * 2) + 1
+        );
+
+        for (let i = 0; i < sparklesToAdd; i++) {
+          const x = Math.random() * 80 + 10;
+          const y = Math.random() * 80 + 10;
+          const id = idCounter++;
+          newSparkles.push({ id, x, y });
+
+          setTimeout(() => {
+            setSparkles((s) => s.filter((sp) => sp.id !== id));
+          }, 2000);
+        }
+
+        return newSparkles;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
-      {" "}
-      <div className="relative flex items-center justify-center -mx-4 h-[30vh]">
-        <div
-          className="h-screen w-screen absolute -z-10"
-          style={{
-            background: `linear-gradient(to bottom, ${rayColor} 60%, var(--background) 80%)`,
-          }}
-        />
+      <RayColorProvider rayColor={rayColor} />
+      <div className="relative flex items-center justify-center -mx-4 h-[30dvh]">
+        <div className="absolute inset-0 flex items-center justify-center z-10   max-h-full aspect-square mx-auto">
+          {/* Sparkle effect, I will add a svg later so just show a div for now */}
+          {sparkles.map((sparkle) => (
+            <div
+              key={sparkle.id}
+              className="absolute w-4 h-4 bg-white"
+              style={{ left: `${sparkle.x}%`, top: `${sparkle.y}%` }}
+            ></div>
+          ))}
+        </div>
+
         <Image
           className="absolute object-contain "
           src={`/images/${rankImage}`}
