@@ -73,13 +73,16 @@ export function GameSelector({ xp }: { xp: number }) {
   const userLevel = getUserLevel(xp);
 
   return (
-    <Carousel>
-      <CarouselContent className="mr-2 pl-2">
+    <Carousel className="overflow-visible">
+      <CarouselContent className="mr-5 pl-2 mb-3">
         {gameCards.map((gameCard, index) => {
           const isLocked =
             levelOrder.indexOf(userLevel) < levelOrder.indexOf(gameCard.level);
           return (
-            <CarouselItem key={index} className="basis-[75%]">
+            <CarouselItem
+              key={index}
+              className="basis-[70%] md:basis-[40%] xl:basis-[24%]"
+            >
               <GameCard
                 title={gameCard.title}
                 cost={0}

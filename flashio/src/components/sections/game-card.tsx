@@ -1,7 +1,9 @@
-import { LockIcon, SparklesIcon } from "lucide-react";
+import { ArrowUpRightIcon, LockIcon, SparklesIcon } from "lucide-react";
 import BackgroundSvg from "../ui/backround-svg";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import BrandedText from "../ui/branded-text";
+import Image from "next/image";
 
 export interface GameCardProps {
   title: string;
@@ -40,34 +42,61 @@ export const ranks = {
 
 export default function GameCard({ ...props }: GameCardProps) {
   return (
-    <div className="h-[40dvh] w-full overflow-hidden flex flex-col relative ">
-      <div className="absolute right-0 left-0">
+    <div
+      className="h-[44dvh] w-full flex flex-col relative p-4 pb-16 border-4 border-black select-none"
+      style={{
+        backgroundColor: props.backgroundColor,
+        boxShadow: "12px 12px 0px rgba(0,0,0,1)",
+      }}
+    >
+      {/* <div className="absolute right-0 left-0">
         <BackgroundSvg color={props.backgroundColor} />
-      </div>
+      </div> */}
 
-      <div className="z-10 p-6 h-full">
+      <div className="z-10 h-full p-4 bg-white/30 border-4 border-black relative">
         <h1 className="text-4xl ">{props.title}</h1>
         <div className="mt-4 text-xl">{props.description}</div>
-        <div className="text-3xl">{props.reward}</div>
-        <Button
-          className={`absolute left-6 right-6 bottom-6 h-16`}
-          size={"lg"}
-          style={{ backgroundColor: props.backgroundColor }}
-          asChild
-        >
-          <Link href={`/api-fetch?level=${props.level}`}>
-            Play <SparklesIcon className="size-5" />
-          </Link>
-        </Button>
+        <div className="text-2xl flex">
+          Reward: {props.reward}{" "}
+          <Image
+            className="ml-1 object-contain "
+            src={`/images/clever-shard.png`}
+            alt=""
+            height={28}
+            width={28}
+          />
+        </div>
+        <div className=" absolute bottom-2 right-2   flex">
+          <div>Costs {props.cost} </div>
+          <Image
+            className="ml-1 object-contain "
+            src={`/images/clever-shard.png`}
+            alt=""
+            height={28}
+            width={28}
+          />
+        </div>
       </div>
+
+      <Button
+        className="absolute bottom-4 right-4 left-4 rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black"
+        style={{
+          backgroundColor: props.backgroundColor,
+        }}
+      >
+        Open This Pack <ArrowUpRightIcon />
+      </Button>
 
       {props.isLocked && (
         <div className="z-20 absolute inset-0 bg-black/30 flex flex-col items-center justify-center backdrop-blur-md">
           <LockIcon className="size-12 mb-2 text-white/80" />
-          <p className="text-center text-white text-sm px-4">
-            Reach <strong>{props.level.toUpperCase()}</strong> to unlock this
-            pack
-          </p>
+          <div className="text-center text-white text-sm px-4 ">
+            Reach{" "}
+            <BrandedText className=" tracking-wider text-xl leading-none capitalize">
+              {props.level}
+            </BrandedText>{" "}
+            to unlock this pack
+          </div>
         </div>
       )}
     </div>
