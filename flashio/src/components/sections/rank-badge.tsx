@@ -3,7 +3,7 @@ import { getUserLevel } from "@/lib/utils";
 import Image from "next/image";
 import RayColorProvider from "../providers/ray-color-provider";
 import { useEffect, useState } from "react";
-import { levelOrder, ranks } from "./game-card";
+import { levelOrder, ranks } from "./game-pack";
 import BrandedText from "../ui/branded-text";
 
 const rankImages: Record<(typeof levelOrder)[number], string> = {
@@ -95,7 +95,6 @@ export default function RankBadge({ xp }: { xp: number }) {
       <RayColorProvider rayColor={rayColor} />
       <div className="relative flex items-center justify-center -mx-4 h-[25dvh] lg:h-36 select-none">
         <div className="absolute inset-0 flex items-center justify-center z-0 bg-white/40 rounded-full blur-2xl  max-h-full aspect-square mx-auto">
-          {/* Sparkle effect, I will add a svg later so just show a div for now */}
           {sparkles.map((sparkle) => (
             <div
               key={sparkle.id}

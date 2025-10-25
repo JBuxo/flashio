@@ -1,4 +1,4 @@
-import { levelOrder, ranks } from "@/components/sections/game-card";
+import { levelOrder, ranks } from "@/components/sections/game-pack";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Londrina_Shadow, Londrina_Solid, Mansalva } from "next/font/google";
 import "./globals.css";
+import { RenderFlash } from "@/lib/show-flash";
 
 const londrinaShadow = Londrina_Shadow({
   variable: "--font-londrina-shadow",
@@ -35,6 +36,7 @@ export default function RootLayout({
         style={{ background: "var(--ray-color)" }}
       >
         {children}
+        <RenderFlash />
       </body>
     </html>
   );
