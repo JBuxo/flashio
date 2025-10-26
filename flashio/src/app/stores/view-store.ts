@@ -10,7 +10,7 @@ export type ViewStore = {
   flashActive: boolean;
   setFlashActive: (value: boolean) => void;
   switchView: (view: View) => void;
-  selectPack: (pack: GamePackProps) => void;
+  selectPack: (pack: GamePackProps | null) => void;
   confirmPack: () => void;
 };
 
@@ -22,6 +22,10 @@ export const useViewStore = create<ViewStore>((set) => ({
   setFlashActive: (value) => set({ flashActive: value }),
   switchView: (view) => set({ view }),
   selectPack: (pack) =>
-    set({ selectedPack: pack, view: "unboxing", packConfirmed: false }),
+    set({
+      selectedPack: pack,
+      view: pack ? "unboxing" : "dashboard",
+      packConfirmed: false,
+    }),
   confirmPack: () => set({ packConfirmed: true }),
 }));

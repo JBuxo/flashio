@@ -9,30 +9,43 @@ import UnboxingOverlay from "@/components/views/unboxing-overlay";
 import QuizComponent from "@/components/views/quiz-component";
 import Dashboard from "@/components/views/dashboard";
 import { useViewStore } from "./stores/view-store";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useUserStore } from "./stores/user-store";
+import Loader from "@/components/ui/loader";
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-  // let xp = 0;
-  const [xp, setXp] = useState<number>(3000);
+  const { authUser, userXp, userCleverShards, loading, initAuthListener } =
+    useUserStore();
   const view = useViewStore((state) => state.view);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const unsubscribe = initAuthListener();
+    return () => unsubscribe?.();
+  }, [initAuthListener]);
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUser(session?.user ?? null);
-      }
+  if (!loading) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          key={"dashboard"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center justify-center h-[100dvh] text-white bg-pink-500"
+        >
+          <Loader />
+        </motion.div>
+      </AnimatePresence>
     );
-
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  }
 
   return (
     <div className="h-[100dvh] flex flex-col pt-0">
-      <div className="flex justify-between items-center h-16 px-4">
-        <BrandedText className="text-4xl " color="text-pink-500">
+      <div className="flex justify-between items-center h-14 mt-2 mx-4 px-2 rounded-lg bg-black/50">
+        <BrandedText
+          className="text-4xl brightness-200"
+          style={{ color: "var(--ray-color" }}
+        >
           Flashio
         </BrandedText>
 
@@ -44,27 +57,46 @@ export default function Home() {
               height={32}
               width={32}
             />
-            <div className="ml-1 font-semibold">1234</div>
+            <div className="ml-1 font-semibold text-white">
+              {userCleverShards}
+            </div>
           </div>
 
           <div className="rounded-sm bg-accent p-1 size-10 aspect-square flex items-center justify-center">
-            {user?.email?.charAt(0).toUpperCase()}
+            {authUser?.email?.charAt(0).toUpperCase()}
           </div>
         </div>
       </div>
 
-      {view === "dashboard" && <Dashboard xp={xp} />}
-      {view === "unboxing" && <UnboxingOverlay />}
-      {view === "quiz" && (
+      <AnimatePresence>
         <motion.div
-          key="quiz"
+          key={"dashboard"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <QuizComponent />
+          {view === "dashboard" && <Dashboard xp={userXp} />}
         </motion.div>
-      )}
+
+        <motion.div
+          key={"unboxing"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {view === "unboxing" && <UnboxingOverlay />}
+        </motion.div>
+        {view === "quiz" && (
+          <motion.div
+            key="quiz"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <QuizComponent />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -8,11 +8,13 @@ import {
 import { GamePackProps, levelOrder } from "./game-pack";
 import { getUserLevel } from "@/lib/utils";
 import GamePack from "./game-pack";
+import { AnimatePresence } from "motion/react";
 
 // Blue → Teal → Violet → Gold → White-Gold → Iridescent for backgrounds
 const gameCards: GamePackProps[] = [
   {
     title: "Review Pack",
+    pack_type: "review",
     description: "Quick refresher to solidify your knowledge",
     reward_clevershard: 5,
     reward_xp: 0,
@@ -22,6 +24,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Basic Pack",
+    pack_type: "basic",
     description: "Start your journey with simple questions",
     reward_clevershard: 10,
     reward_xp: 100,
@@ -31,6 +34,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Apprentice Pack",
+    pack_type: "apprentice",
     description: "A bit more challenging, test your skills",
     reward_clevershard: 25,
     reward_xp: 200,
@@ -40,6 +44,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Advanced Pack",
+    pack_type: "advanced",
     description: "Complex questions for deeper understanding",
     reward_clevershard: 50,
     reward_xp: 300,
@@ -49,6 +54,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Elite Pack",
+    pack_type: "elite",
     description: "Expert-level questions to master the topic",
     reward_clevershard: 125,
     reward_xp: 500,
@@ -58,6 +64,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Mythic Pack",
+    pack_type: "mythic",
     description: "Test your knowledge with advanced mastery questions",
     reward_clevershard: 250,
     reward_xp: 750,
@@ -67,6 +74,7 @@ const gameCards: GamePackProps[] = [
   },
   {
     title: "Legendary Pack",
+    pack_type: "legendary",
     description: "Ultimate challenge for the true expert",
     reward_clevershard: 500,
     reward_xp: 1000,
@@ -81,7 +89,7 @@ export function GameSelector({ xp }: { xp: number }) {
 
   return (
     <Carousel className="overflow-visible">
-      <CarouselContent className="mr-6 pl-4 mb-3 -ml-4">
+      <CarouselContent className="mr-6 pl-4 pb-3 -ml-4 pt-3">
         {gameCards.map((gameCard, index) => {
           const isLocked =
             levelOrder.indexOf(userLevel) < levelOrder.indexOf(gameCard.level);
@@ -91,6 +99,7 @@ export function GameSelector({ xp }: { xp: number }) {
               className={`basis-[70%] md:basis-[40%] xl:basis-[24%] pr-4`}
             >
               <GamePack
+                pack_type={gameCard.pack_type}
                 title={gameCard.title}
                 cost={gameCard.cost}
                 description={gameCard.description}
@@ -100,6 +109,7 @@ export function GameSelector({ xp }: { xp: number }) {
                 level={gameCard.level}
                 isLocked={isLocked}
                 userLevel={userLevel}
+                index={index}
               />
             </CarouselItem>
           );

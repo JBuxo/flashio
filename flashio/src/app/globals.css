@@ -79,7 +79,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --ray-color: var(--background)
+  --ray-color: var(--background);
 }
 
 .dark {
@@ -120,16 +120,40 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   html {
     /* Extend content into safe areas (notch) */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+      env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
-  
+
   body {
     @apply bg-background text-foreground;
     /* Ensure background extends behind notch */
     min-height: 100vh;
     min-height: -webkit-fill-available;
   }
+}
+
+/* Chrome, Safari, Edge */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: none !important;
+  -webkit-text-fill-color: inherit !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  transition: background-color 5000s ease-in-out 0s;
+  border: none !important;
+  caret-color: inherit !important;
+}
+
+/* Firefox */
+input:-moz-autofill {
+  box-shadow: none !important;
+  -moz-text-fill-color: inherit !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  filter: none !important;
 }

@@ -47,6 +47,7 @@ export default function UnboxingOverlay() {
               className="relative"
             >
               <GamePack
+                pack_type={pack.pack_type}
                 title={pack.title}
                 description={pack.description}
                 reward_clevershard={pack.reward_clevershard}

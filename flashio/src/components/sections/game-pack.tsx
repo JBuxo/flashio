@@ -9,6 +9,9 @@ import { Button } from "../ui/button";
 import BrandedText from "../ui/branded-text";
 import Image from "next/image";
 import { useViewStore } from "@/app/stores/view-store";
+import { useFlashcardStore } from "@/app/stores/flashcard-store";
+import { motion } from "motion/react";
+import { createGameSession } from "@/supabase/game/game-session";
 
 export interface GamePackProps {
   title: string;
@@ -18,6 +21,14 @@ export interface GamePackProps {
   backgroundColor: string;
   cost: number;
   level: "spark" | "seeker" | "scholar" | "thinker" | "mastermind" | "sage";
+  pack_type:
+    | "review"
+    | "basic"
+    | "apprentice"
+    | "advanced"
+    | "elite"
+    | "mythic"
+    | "legendary";
   userLevel?:
     | "spark"
     | "seeker"
@@ -26,6 +37,7 @@ export interface GamePackProps {
     | "mastermind"
     | "sage";
   isLocked?: boolean;
+  index?: number;
 }
 
 export const levelOrder = [
@@ -50,9 +62,40 @@ export default function GamePack({ ...props }: GamePackProps) {
   const selectPack = useViewStore((state) => state.selectPack);
   const switchView = useViewStore((state) => state.switchView);
   const confirmPack = useViewStore((state) => state.confirmPack);
+  const setGameSession = useFlashcardStore((state) => state.setGameSession);
+  const setFlashcards = useFlashcardStore((store) => store.setFlashcards);
   const view = useViewStore((state) => state.view);
+  const userId = "6b1b8f65-7a8b-4fc9-8158-8938b0186e8a";
+
+  const handleConfirmPack = async () => {
+    confirmPack();
+
+    try {
+      const res = await fetch("/api/generate-questions", { method: "GET" });
+
+      if (!res.ok) throw new Error("Failed to fetch flashcards");
+
+      const flashcards = await res.json();
+
+      setFlashcards(flashcards);
+
+      const gameSession = await createGameSession(userId, props.pack_type);
+      setGameSession(gameSession.id);
+    } catch (err) {
+      console.error("Error loading flashcards:", err);
+    }
+  };
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        type: "spring",
+        stiffness: 300, // bounce
+        damping: 20, // speed
+        delay: props.index !== undefined ? props.index * 0.1 : 0, //stagger
+      }}
       className="h-[44dvh] w-full flex flex-col relative p-4 pb-16 border-4 border-black select-none"
       style={{
         backgroundColor: props.backgroundColor,
@@ -77,7 +120,7 @@ export default function GamePack({ ...props }: GamePackProps) {
           <div className="flex items-center">
             <div className="mr-1">{props.reward_xp}</div>{" "}
             <BrandedText
-              className="text-lg brightness-40"
+              className="text-lg brightness-50"
               style={{ color: props.backgroundColor }}
             >
               XP
@@ -107,7 +150,7 @@ export default function GamePack({ ...props }: GamePackProps) {
             if (!props.isLocked && view === "dashboard") {
               selectPack(props);
             } else {
-              confirmPack();
+              handleConfirmPack();
             }
           }}
         >
@@ -147,6 +190,6 @@ export default function GamePack({ ...props }: GamePackProps) {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

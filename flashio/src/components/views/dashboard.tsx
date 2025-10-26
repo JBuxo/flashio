@@ -13,7 +13,8 @@ export default function Dashboard({ xp }: { xp: number }) {
         <div className="px-4 mb-2">
           <BrandedText
             className="text-4xl tracking-wider"
-            color="text-pink-500"
+            color="brightness-200"
+            style={{ color: "var(--ray-color" }}
           >
             Earn Points
           </BrandedText>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import BrandedText from "../ui/branded-text";
 import { Button } from "../ui/button";
+import { useFlashcardStore } from "@/app/stores/flashcard-store";
 
 export default function Flashcard({
   questionNumber,
@@ -23,13 +24,16 @@ export default function Flashcard({
   const [exitState, setExitState] = useState<"correct" | "incorrect" | null>(
     null
   );
+  const markAnswer = useFlashcardStore((state) => state.markAnswer);
 
   const handleCorrect = () => {
+    markAnswer(questionNumber, true);
     setExitState("correct");
     setTimeout(() => onComplete?.(), 800); // match exit animation duration
   };
 
   const handleIncorrect = () => {
+    markAnswer(questionNumber, false);
     setExitState("incorrect");
     setTimeout(() => onComplete?.(), 800);
   };
@@ -40,7 +44,7 @@ export default function Flashcard({
         rotate: [0, 3, -2, 2, 0],
         x: [0, -50, -800],
         opacity: [1, 0.9, 1, 0.8, 0],
-        backgroundColor: ["white", "#22c55e", "white", "#22c55e", "white"],
+        backgroundColor: ["#FFFFFF", "#22c55e", "white", "#22c55e", "#FFFFFF"],
         transition: { duration: 0.8, ease: "easeInOut" },
       };
     } else if (exitState === "incorrect") {
@@ -57,6 +61,7 @@ export default function Flashcard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
+      // @ts-expect-error - Animation type mismatch
       animate={exitState ? getExitAnimation() : { opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       style={{ perspective: "1000px" }}
