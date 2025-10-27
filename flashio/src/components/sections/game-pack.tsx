@@ -4,7 +4,6 @@ import {
   LockIcon,
   SquareXIcon,
 } from "lucide-react";
-
 import { Button } from "../ui/button";
 import BrandedText from "../ui/branded-text";
 import Image from "next/image";

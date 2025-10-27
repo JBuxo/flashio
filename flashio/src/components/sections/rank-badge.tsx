@@ -2,10 +2,8 @@
 import { getUserLevel } from "@/lib/utils";
 import Image from "next/image";
 import RayColorProvider from "../providers/ray-color-provider";
-import { useEffect, useState } from "react";
 import { levelOrder, ranks } from "./game-pack";
 import BrandedText from "../ui/branded-text";
-import { motion } from "motion/react";
 
 const rankImages: Record<(typeof levelOrder)[number], string> = {
   spark: "spark-gem.png",
@@ -16,10 +14,7 @@ const rankImages: Record<(typeof levelOrder)[number], string> = {
   sage: "sage-gem.png",
 };
 
-type Sparkle = { id: number; x: number; y: number };
-
 export default function RankBadge({ xp }: { xp: number }) {
-  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
   const userLevel = getUserLevel(xp);
   const currentIndex = levelOrder.indexOf(userLevel);
   const nextLevel = levelOrder[currentIndex + 1];
@@ -61,58 +56,19 @@ export default function RankBadge({ xp }: { xp: number }) {
       break;
   }
 
-  useEffect(() => {
-    let idCounter = 0;
-
-    const interval = setInterval(() => {
-      setSparkles((prev) => {
-        const newSparkles = [...prev];
-
-        const sparklesToAdd = Math.min(
-          3 - newSparkles.length,
-          Math.floor(Math.random() * 2) + 1
-        );
-
-        for (let i = 0; i < sparklesToAdd; i++) {
-          const x = Math.random() * 80 + 10;
-          const y = Math.random() * 80 + 10;
-          const id = idCounter++;
-          newSparkles.push({ id, x, y });
-
-          setTimeout(() => {
-            setSparkles((s) => s.filter((sp) => sp.id !== id));
-          }, 2000);
-        }
-
-        return newSparkles;
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   return (
     <>
       <RayColorProvider rayColor={rayColor} />
-      <div className="relative flex items-center justify-center -mx-4 h-[50dvh] lg:h-[35dvh] select-none pointer-events-none">
+      <div className="relative flex items-center justify-center -mx-4 h-[25dvh] select-none pointer-events-none">
         <div className="absolute inset-0 flex items-center justify-center z-0 bg-white/70 rounded-full blur-2xl  max-h-full aspect-square mx-auto" />
 
-        <motion.div
-          className="absolute w-full h-full"
-          animate={{ y: [0, -5, 0] }}
-          transition={{
-            duration: 5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          <Image
-            className="object-contain"
-            src={`/images/${rankImage}`}
-            alt=""
-            fill
-          />
-        </motion.div>
+        <Image
+          className="object-contain"
+          src={`/images/${rankImage}`}
+          alt=""
+          fill
+          loading="eager"
+        />
       </div>
       <div className="flex flex-col items-center relative max-w-96 mx-auto">
         {xp <= 9999 && (

@@ -1,4 +1,5 @@
-// stores/user-store.ts
+"use client";
+
 import { supabase } from "@/supabase/client";
 import { create } from "zustand";
 import { User } from "@supabase/supabase-js";
@@ -10,7 +11,7 @@ export type UserStore = {
   userCleverShards: number;
   loading: boolean;
 
-  initAuthListener: () => () => void; //this looked weird but the authlisteren returns a cleanup so
+  initAuthListener: () => () => void;
   fetchUserData: () => Promise<void>;
   addXp: (amount: number) => Promise<void>;
   addCleverShards: (amount: number) => Promise<void>;
@@ -24,32 +25,109 @@ export const useUserStore = create<UserStore>((set, get) => ({
   loading: false,
 
   initAuthListener: () => {
-    //check auth
-    supabase.auth.getUser().then(({ data }) => {
+    let userChannel: ReturnType<typeof supabase.channel> | null = null;
+    let retryCount = 0;
+
+    const subscribeToUser = async (userId: string) => {
+      if (!userId) return console.warn("subscribeToUser called with no userId");
+      if (userChannel) return console.log("Already subscribed, skipping");
+
+      // Ensure we have a valid session / JWT
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        console.warn("No JWT token, cannot subscribe yet");
+        return;
+      }
+
+      userChannel = supabase
+        .channel(`user-changes-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "users",
+            filter: `id=eq.${userId}`,
+          },
+          (payload) => {
+            const newData = payload.new as {
+              xp: number;
+              clever_shards: number;
+            };
+            set({
+              userXp: newData.xp,
+              userCleverShards: newData.clever_shards,
+            });
+          }
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log("Subscribed ");
+            retryCount = 0; // reset retry count
+          } else if (status === "CHANNEL_ERROR") {
+            console.error("subscribe error");
+            userChannel = null;
+            // Retry once after 2s
+            if (retryCount < 1) {
+              retryCount++;
+              console.log("retrying in 2s...");
+              setTimeout(() => subscribeToUser(userId), 2000);
+            }
+          } else if (status === "CLOSED") {
+            console.log("channel closed");
+            userChannel = null;
+          }
+        });
+    };
+
+    // Initial auth check
+    supabase.auth.getUser().then(async ({ data }) => {
       const currentUser = data.user;
+
       if (currentUser) {
         set({ authUser: currentUser, userId: currentUser.id });
-        get().fetchUserData();
+        await get().fetchUserData();
+        await subscribeToUser(currentUser.id);
       }
     });
 
-    // listen to auth change
+    // Listen for login/logout
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         const currentUser = session?.user ?? null;
+
         set({ authUser: currentUser, userId: currentUser?.id ?? "" });
-        if (currentUser) await get().fetchUserData();
+
+        // Unsubscribe old channel
+        if (userChannel) {
+          userChannel.unsubscribe();
+          userChannel = null;
+        }
+
+        if (currentUser) {
+          await get().fetchUserData();
+          await subscribeToUser(currentUser.id);
+        }
       }
     );
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener.subscription.unsubscribe();
+      userChannel?.unsubscribe();
+    };
   },
 
   fetchUserData: async () => {
     const { userId } = get();
-    if (!userId) return;
 
-    set({ loading: true });
+    set({ loading: true }); // start loading
+
+    if (!userId) {
+      set({ loading: false });
+      return;
+    }
 
     const { data, error } = await supabase
       .from("users")
@@ -69,12 +147,26 @@ export const useUserStore = create<UserStore>((set, get) => ({
   },
 
   addXp: async (amount: number) => {
-    await supabase.rpc("add_xp", { amt: amount });
-    get().fetchUserData();
+    const { userId } = get();
+    if (!userId) return;
+
+    const { error } = await supabase.rpc("add_xp", {
+      uid: userId,
+      amt: amount,
+    });
+
+    if (error) console.error("Error adding XP:", error);
   },
 
   addCleverShards: async (amount: number) => {
-    await supabase.rpc("add_clever_shards", { amt: amount });
-    get().fetchUserData();
+    const { userId } = get();
+    if (!userId) return;
+
+    const { error } = await supabase.rpc("add_clever_shards", {
+      uid: userId,
+      amt: amount,
+    });
+
+    if (error) console.error("Error adding XP:", error);
   },
 }));

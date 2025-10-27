@@ -51,13 +51,16 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <InputGroup className="rounded-none bg-white border-3 border-black">
+          <InputGroup className="rounded-none bg-white border-3 border-black text-black">
             <InputGroupInput
               type="email"
+              autoComplete="email"
               placeholder="Enter your email"
               value={emailAddress}
               onChange={(e) => setEmailAddress(e.target.value)}
               required
+              aria-label="Email address"
+              aria-required="true"
             />
             <InputGroupAddon>
               <MailIcon />

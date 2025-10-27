@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import {
   Carousel,
   CarouselContent,
@@ -8,7 +6,6 @@ import {
 import { GamePackProps, levelOrder } from "./game-pack";
 import { getUserLevel } from "@/lib/utils";
 import GamePack from "./game-pack";
-import { AnimatePresence } from "motion/react";
 
 // Blue → Teal → Violet → Gold → White-Gold → Iridescent for backgrounds
 const gameCards: GamePackProps[] = [

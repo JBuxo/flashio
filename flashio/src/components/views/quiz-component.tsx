@@ -4,12 +4,24 @@ import CompletionOverlay from "./completion-overlay";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
 import { insertFlashcardsToSession } from "@/supabase/game/game-session";
 
+import { useViewStore } from "@/app/stores/view-store";
+import { useUserStore } from "@/app/stores/user-store";
+import { AnimatePresence, motion } from "motion/react";
+import Loader from "../ui/loader";
+
 export default function QuizComponent() {
   const questionCards = useFlashcardStore((state) => state.flashcards);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
+  const pack = useViewStore((store) => store.selectedPack);
   const gameSession = useFlashcardStore((store) => store.gameSession);
   const answers = useFlashcardStore((store) => store.getResults());
+  const correctCount = answers.filter((a) => a.isCorrect).length;
+  const user = useUserStore((store) => store);
+  // const userId = useUserStore((store) => store.userId);
+
+  const xp = (correctCount / answers.length) * pack!.reward_xp;
+  const shards = (correctCount / answers.length) * pack!.reward_clevershard;
 
   const nextCard = async () => {
     if (currentIndex < questionCards.length - 1) {
@@ -17,12 +29,24 @@ export default function QuizComponent() {
     } else {
       setCompleted(true);
       if (gameSession) await insertFlashcardsToSession(gameSession, answers);
+      await user.addXp(xp);
+      await user.addCleverShards(shards);
     }
   };
 
   if (!questionCards || questionCards.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">Loading...</div>
+      <AnimatePresence>
+        <motion.div
+          key={"dashboard"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="flex items-center justify-center h-[100dvh] text-white bg-pink-500"
+        >
+          <Loader />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -47,9 +71,9 @@ export default function QuizComponent() {
         {questionCards
           .slice(currentIndex + 1, currentIndex + 6)
           .map((card, idx) => {
-            const rotation = idx * 5; // fan angle
+            const rotation = idx * 5; // angle
             const translateX = idx * 20; // horizontal spacing
-            const translateY = idx * 5; // slight vertical offset
+            const translateY = idx * 5; // vertical offset
 
             return (
               <div

@@ -7,9 +7,11 @@ import { motion } from "motion/react";
 import { useEffect } from "react";
 import { launchConfetti } from "@/lib/utils";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
+import { useUserStore } from "@/app/stores/user-store";
 
 export default function CompletionOverlay() {
   const switchView = useViewStore((state) => state.switchView);
+  const userId = useUserStore((store) => store.userId);
   const pack = useViewStore((store) => store.selectedPack);
   const answers = useFlashcardStore((store) => store.getResults());
   const correctCount = answers.filter((a) => a.isCorrect).length;
@@ -89,7 +91,9 @@ export default function CompletionOverlay() {
 
             <Button
               className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black  w-1/3 ml-auto bg-green-500 hover:bg-green-400"
-              onClick={() => switchView("dashboard")}
+              onClick={() => {
+                switchView("dashboard");
+              }}
             >
               Home <HomeIcon />
             </Button>
