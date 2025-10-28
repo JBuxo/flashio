@@ -2,7 +2,10 @@ import { useState } from "react";
 import Flashcard from "../sections/flashcard";
 import CompletionOverlay from "./completion-overlay";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
-import { insertFlashcardsToSession } from "@/supabase/game/game-session";
+import {
+  insertFlashcardsToSession,
+  updateSessionRewards,
+} from "@/supabase/game/game-session";
 
 import { useViewStore } from "@/app/stores/view-store";
 import { useUserStore } from "@/app/stores/user-store";
@@ -16,20 +19,40 @@ export default function QuizComponent() {
   const pack = useViewStore((store) => store.selectedPack);
   const gameSession = useFlashcardStore((store) => store.gameSession);
   const answers = useFlashcardStore((store) => store.getResults());
-  const correctCount = answers.filter((a) => a.isCorrect).length;
   const user = useUserStore((store) => store);
-
-  const xp = (correctCount / answers.length) * pack!.reward_xp;
-  const shards = (correctCount / answers.length) * pack!.reward_clevershard;
 
   const nextCard = async () => {
     if (currentIndex < questionCards.length - 1) {
       setCurrentIndex((prev) => prev + 1);
-    } else {
-      setCompleted(true);
-      if (gameSession) await insertFlashcardsToSession(gameSession, answers);
+      return;
+    }
+
+    setCompleted(true);
+
+    if (!gameSession || !pack) return;
+
+    try {
+      // 1️⃣ Persist flashcards for this session
+      await insertFlashcardsToSession(gameSession, answers);
+
+      // 2️⃣ Calculate rewards safely
+      const correctCount = answers.filter((a) => a.isCorrect).length;
+      const total = answers.length;
+      const xp = total
+        ? Math.round((correctCount / total) * pack.reward_xp)
+        : 0;
+      const shards = total
+        ? Math.round((correctCount / total) * pack.reward_clevershard)
+        : 0;
+
+      // 3️⃣ Persist rewards in the session
+      await updateSessionRewards(gameSession, xp, shards);
+
+      // 4️⃣ Update user's total XP / shards in app state (and optionally in DB if user.addXp handles that)
       await user.addXp(xp);
       await user.addCleverShards(shards);
+    } catch (err: any) {
+      console.error("Error submitting session:", err.message || err);
     }
   };
 
@@ -37,7 +60,7 @@ export default function QuizComponent() {
     return (
       <AnimatePresence>
         <motion.div
-          key={"dashboard"}
+          key="loader"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -65,14 +88,12 @@ export default function QuizComponent() {
 
       {/* Upcoming Cards (Fanned Out) */}
       <div className="absolute bottom-0 flex items-end justify-center">
-        {/* <pre>{JSON.stringify(questionCards, null, 2)}</pre> */}
-
         {questionCards
           .slice(currentIndex + 1, currentIndex + 6)
           .map((card, idx) => {
-            const rotation = idx * 5; // angle
-            const translateX = idx * 20; // horizontal spacing
-            const translateY = idx * 5; // vertical offset
+            const rotation = idx * 5;
+            const translateX = idx * 20;
+            const translateY = idx * 5;
 
             return (
               <div

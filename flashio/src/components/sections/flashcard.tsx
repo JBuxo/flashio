@@ -2,7 +2,7 @@
 
 import { CheckSquare2Icon, SquareXIcon } from "lucide-react";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import BrandedText from "../ui/branded-text";
 import { Button } from "../ui/button";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
@@ -12,15 +12,19 @@ export default function Flashcard({
   question,
   answer,
   isActive,
+  isReview = false,
+  wasCorrect,
   onComplete,
 }: {
   questionNumber: number;
   question: string;
   answer: string;
   isActive?: boolean;
+  isReview?: boolean;
+  wasCorrect?: boolean;
   onComplete?: () => void;
 }) {
-  const [isFlipped, setIsFlipped] = useState<boolean>(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   const [exitState, setExitState] = useState<"correct" | "incorrect" | null>(
     null
   );
@@ -29,7 +33,7 @@ export default function Flashcard({
   const handleCorrect = () => {
     markAnswer(questionNumber, true);
     setExitState("correct");
-    setTimeout(() => onComplete?.(), 800); // match exit animation duration
+    setTimeout(() => onComplete?.(), 800);
   };
 
   const handleIncorrect = () => {
@@ -61,54 +65,47 @@ export default function Flashcard({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      // @ts-expect-error - Animation type mismatch
+      // @ts-expect-error
       animate={exitState ? getExitAnimation() : { opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      style={{ perspective: "1000px" }}
-      className={`relative w-full lg:w-xl h-96 sm:h-auto aspect-video ${
+      className={`w-full h-96 sm:h-auto aspect-video ${
         isActive ? "" : "pointer-events-none"
       }`}
     >
-      {/* Stamp overlay */}
-      {exitState && (
+      <div className="relative w-full h-full" style={{ perspective: 1000 }}>
+        {/* Rotating card container */}
         <motion.div
-          key="stamp"
-          initial={{ scale: 0, opacity: 0, rotate: -15 }}
-          animate={{
-            scale: [0, 1.2, 1],
-            opacity: [0, 1, 1],
-            rotate: [-15, 10, 0],
+          animate={{ rotateY: isFlipped ? 180 : 0 }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
+          style={{
+            transformStyle: "preserve-3d",
+            width: "100%",
+            height: "100%",
+            position: "relative",
           }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="absolute inset-0 flex items-center justify-center pointer-events-none z-50"
         >
-          {exitState === "correct" ? (
-            <CheckSquare2Icon
-              className="w-32 h-32 text-white fill-green-500 "
-              strokeWidth={1}
-            />
-          ) : (
-            <SquareXIcon
-              className="w-32 h-32 text-white fill-red-500 "
-              strokeWidth={1}
-            />
-          )}
-        </motion.div>
-      )}
-
-      <AnimatePresence mode="wait">
-        {!isFlipped ? (
-          <motion.div
-            key="front"
-            initial={{ rotateY: 0 }}
-            exit={{ rotateY: 90 }}
-            transition={{ duration: 0.1, ease: "easeInOut" }}
-            whileHover={{ scale: 1.02, boxShadow: "6px 6px 0 rgba(0,0,0,1)" }}
-            whileTap={{ scale: 0.98 }}
+          {/* Front side */}
+          <div
             onClick={() => setIsFlipped(true)}
             className="absolute inset-0 bg-white border-3 border-black shadow-[4px_4px_0_rgba(0,0,0,1)] p-4 flex flex-col gap-2 cursor-pointer"
-            style={{ backfaceVisibility: "hidden" }}
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(0deg)",
+            }}
           >
+            {isReview && wasCorrect !== undefined && (
+              <motion.div
+                initial={{ scale: 0, rotate: 20, opacity: 0 }}
+                animate={{ scale: 1, rotate: 20, opacity: 1 }}
+                transition={{ duration: 0.4, ease: "backOut" }}
+                className={`absolute top-5 z-20 right-2 text-white text-sm font-bold px-3 py-1 rounded-md border-2 border-black shadow-[2px_2px_0_rgba(0,0,0,1)] ${
+                  wasCorrect ? "bg-green-500" : "bg-red-500"
+                }`}
+              >
+                {wasCorrect ? "CORRECT" : "WRONG"}
+              </motion.div>
+            )}
+
             <BrandedText className="text-2xl" color="text-pink-500">
               Question {questionNumber}
             </BrandedText>
@@ -124,37 +121,51 @@ export default function Flashcard({
             >
               Tap Card To Flip
             </motion.div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="back"
-            initial={{ rotateY: -90 }}
-            animate={{ rotateY: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="absolute inset-0 bg-gray-300 border-3 border-black shadow-[4px_4px_0_rgba(0,0,0,1)] p-4 flex flex-col gap-2"
-            style={{ backfaceVisibility: "hidden" }}
+          </div>
+
+          {/* Back side */}
+          <div
+            onClick={() => {
+              if (isReview) setIsFlipped(false);
+            }}
+            className={`absolute inset-0 bg-gray-300 border-3 border-black shadow-[4px_4px_0_rgba(0,0,0,1)] p-4 flex flex-col gap-2 ${
+              isReview ? "cursor-pointer" : ""
+            }`}
+            style={{
+              backfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+            }}
           >
             <BrandedText className="text-2xl" color="text-pink-500">
               Answer
             </BrandedText>
             <div className="flex-1 text-lg">{answer}</div>
-            <div className="w-full flex gap-4">
-              <Button
-                onClick={handleCorrect}
-                className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black flex-1 bg-green-500 lg:hover:bg-green-300 transition-all"
-              >
-                Correct <CheckSquare2Icon />
-              </Button>
-              <Button
-                onClick={handleIncorrect}
-                className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black flex-1 bg-red-500 hover:bg-red-400 transition-all"
-              >
-                Wrong <SquareXIcon />
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+            {!isReview && (
+              <div className="w-full flex gap-4">
+                <Button
+                  onClick={handleCorrect}
+                  className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black flex-1 bg-green-500 lg:hover:bg-green-300 transition-all"
+                >
+                  Correct <CheckSquare2Icon />
+                </Button>
+                <Button
+                  onClick={handleIncorrect}
+                  className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black flex-1 bg-red-500 hover:bg-red-400 transition-all"
+                >
+                  Wrong <SquareXIcon />
+                </Button>
+              </div>
+            )}
+
+            {isReview && (
+              <p className="text-center text-sm text-gray-600 mt-2">
+                Tap anywhere to flip back
+              </p>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

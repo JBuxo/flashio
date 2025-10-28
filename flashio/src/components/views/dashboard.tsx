@@ -9,8 +9,8 @@ export default function Dashboard({ xp }: { xp: number }) {
         <RankBadge xp={xp} />
       </div>
 
-      <div className=" flex flex-col flex-1">
-        <div className="px-4 mb-2">
+      <div className="flex flex-col flex-1">
+        <div className="pl-4 mb-2">
           <BrandedText
             className="text-4xl tracking-wider"
             color="brightness-200"

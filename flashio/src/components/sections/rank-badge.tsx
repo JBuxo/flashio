@@ -59,7 +59,7 @@ export default function RankBadge({ xp }: { xp: number }) {
   return (
     <>
       <RayColorProvider rayColor={rayColor} />
-      <div className="relative flex items-center justify-center -mx-4 h-[25dvh] select-none pointer-events-none">
+      <div className="relative flex items-center justify-center -mx-4 h-[23dvh] select-none pointer-events-none">
         <div className="absolute inset-0 flex items-center justify-center z-0 bg-white/70 rounded-full blur-2xl  max-h-full aspect-square mx-auto" />
 
         <Image

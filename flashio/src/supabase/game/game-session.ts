@@ -22,7 +22,7 @@ export async function createGameSession(
   const { data: session, error } = await supabaseClient
     .from("sessions")
     .insert({
-      user_id: user.id, // ✅ Use current user’s UUID
+      user_id: user.id,
       pack,
     })
     .select()
@@ -98,4 +98,23 @@ export async function getAllSessionsForUser() {
   }
 
   return sessions;
+}
+
+export async function updateSessionRewards(
+  sessionId: string,
+  xpReward: number,
+  cleverShardsReward: number
+) {
+  const { data, error } = await supabaseClient
+    .from("sessions")
+    .update({
+      xp_rewarded: xpReward,
+      clever_shards_rewarded: cleverShardsReward,
+    })
+    .eq("id", sessionId)
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
 }
