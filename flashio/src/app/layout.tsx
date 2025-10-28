@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Londrina_Shadow, Londrina_Solid, Mansalva } from "next/font/google";
 import "./globals.css";
 import { RenderFlash } from "@/lib/show-flash";
+import Header from "@/components/sections/header";
 
 const londrinaShadow = Londrina_Shadow({
   variable: "--font-londrina-shadow",

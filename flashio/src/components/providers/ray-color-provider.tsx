@@ -1,9 +1,9 @@
 "use cleint";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 export default function RayColorProvider({ rayColor }: { rayColor: string }) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.style.setProperty("--ray-color", rayColor);
   }, [rayColor]);
   return null;

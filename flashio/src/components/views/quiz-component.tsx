@@ -18,7 +18,6 @@ export default function QuizComponent() {
   const answers = useFlashcardStore((store) => store.getResults());
   const correctCount = answers.filter((a) => a.isCorrect).length;
   const user = useUserStore((store) => store);
-  // const userId = useUserStore((store) => store.userId);
 
   const xp = (correctCount / answers.length) * pack!.reward_xp;
   const shards = (correctCount / answers.length) * pack!.reward_clevershard;
@@ -42,7 +41,7 @@ export default function QuizComponent() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center justify-center h-[100dvh] text-white bg-pink-500"
+          className="flex items-center justify-center h-[100dvh] text-white bg-pink-500 fixed top-0 left-0 right-0 bottom-0"
         >
           <Loader />
         </motion.div>

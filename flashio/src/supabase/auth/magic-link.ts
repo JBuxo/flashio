@@ -1,7 +1,7 @@
-import { supabase } from "../client";
+import { supabaseClient } from "../client";
 
 export async function loginWithEmail(emailAddress: string) {
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabaseClient.auth.signInWithOtp({
     email: emailAddress,
   });
 

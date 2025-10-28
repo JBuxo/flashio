@@ -1,6 +1,6 @@
 "use client";
 
-import { supabase } from "@/supabase/client";
+import { supabaseClient } from "@/supabase/client";
 import { create } from "zustand";
 import { User } from "@supabase/supabase-js";
 
@@ -25,7 +25,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
   loading: false,
 
   initAuthListener: () => {
-    let userChannel: ReturnType<typeof supabase.channel> | null = null;
+    let userChannel: ReturnType<typeof supabaseClient.channel> | null = null;
     let retryCount = 0;
 
     const subscribeToUser = async (userId: string) => {
@@ -33,7 +33,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       if (userChannel) return console.log("Already subscribed, skipping");
 
       // Ensure we have a valid session / JWT
-      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabaseClient.auth.getSession();
       const accessToken = sessionData.session?.access_token;
 
       if (!accessToken) {
@@ -41,7 +41,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
         return;
       }
 
-      userChannel = supabase
+      userChannel = supabaseClient
         .channel(`user-changes-${userId}`)
         .on(
           "postgres_changes",
@@ -83,7 +83,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     };
 
     // Initial auth check
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabaseClient.auth.getUser().then(async ({ data }) => {
       const currentUser = data.user;
 
       if (currentUser) {
@@ -94,7 +94,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     });
 
     // Listen for login/logout
-    const { data: listener } = supabase.auth.onAuthStateChange(
+    const { data: listener } = supabaseClient.auth.onAuthStateChange(
       async (_event, session) => {
         const currentUser = session?.user ?? null;
 
@@ -129,7 +129,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from("users")
       .select("id, xp, clever_shards")
       .eq("id", userId)
@@ -150,7 +150,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const { userId } = get();
     if (!userId) return;
 
-    const { error } = await supabase.rpc("add_xp", {
+    const { error } = await supabaseClient.rpc("add_xp", {
       uid: userId,
       amt: amount,
     });
@@ -162,7 +162,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const { userId } = get();
     if (!userId) return;
 
-    const { error } = await supabase.rpc("add_clever_shards", {
+    const { error } = await supabaseClient.rpc("add_clever_shards", {
       uid: userId,
       amt: amount,
     });

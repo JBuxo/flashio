@@ -11,6 +11,7 @@ import { useViewStore } from "@/app/stores/view-store";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
 import { motion } from "motion/react";
 import { createGameSession } from "@/supabase/game/game-session";
+import { useUserStore } from "@/app/stores/user-store";
 
 export interface GamePackProps {
   title: string;
@@ -64,21 +65,40 @@ export default function GamePack({ ...props }: GamePackProps) {
   const setGameSession = useFlashcardStore((state) => state.setGameSession);
   const setFlashcards = useFlashcardStore((store) => store.setFlashcards);
   const view = useViewStore((state) => state.view);
-  const userId = "6b1b8f65-7a8b-4fc9-8158-8938b0186e8a";
+  const userId = useUserStore((state) => state.userId);
+  const selectedPack = useViewStore((state) => state.selectedPack);
 
   const handleConfirmPack = async () => {
-    confirmPack();
-
     try {
-      const res = await fetch("/api/generate-questions", { method: "GET" });
+      confirmPack();
 
-      if (!res.ok) throw new Error("Failed to fetch flashcards");
+      const { selectedPack } = useViewStore.getState();
+      if (!selectedPack) throw new Error("No pack selected");
+
+      const pack_level = selectedPack.level;
+
+      // make the api call the right thing
+      const endpoint =
+        selectedPack.title === "Review Pack"
+          ? "/api/review-pack"
+          : "/api/generate-questions";
+
+      // call openai
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ level: pack_level }),
+      });
+
+      if (!res.ok) throw new Error(`Failed to fetch from ${endpoint}`);
 
       const flashcards = await res.json();
+      console.log("Generated Flashcards:", flashcards);
 
+      // Store flashcards and start session
       setFlashcards(flashcards);
 
-      const gameSession = await createGameSession(userId, props.pack_type);
+      const gameSession = await createGameSession(props.pack_type);
       setGameSession(gameSession.id);
     } catch (err) {
       console.error("Error loading flashcards:", err);

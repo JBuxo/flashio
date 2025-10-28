@@ -1,39 +1,92 @@
 import { Flashcard } from "@/app/stores/flashcard-store";
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
 
-// Generate FlashcardQuestions
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export async function POST(request: Request) {
   try {
-    // get questions from OPENAI
     const body = await request.json();
-    const { questions } = body;
+    const { level } = body;
 
-    // Safety Check
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return new Response(JSON.stringify({ error: "No Questions Generated" }), {
+    const difficultyDescriptions = {
+      spark: "very easy, general knowledge questions anyone can answer",
+      seeker: "easy trivia with simple reasoning",
+      scholar: "moderate, requires some background knowledge",
+      thinker: "challenging, less common facts or logic needed",
+      mastermind: "hard, niche or multi-step reasoning questions",
+      sage: "expert-level, specialized domain knowledge",
+    } as const;
+
+    if (!(level in difficultyDescriptions)) {
+      return new Response(JSON.stringify({ error: "Invalid level provided" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Mold into flashcard type
-    const flashcards: Flashcard[] = questions.map((card, index) => ({
-      questionNumber: index + 1,
-      question: card.question || "",
-      answer: card.answer || "",
+    const prompt = `
+      Generate 10 trivia questions at the "${level}" level.
+      "${level}" means: ${
+      difficultyDescriptions[level as keyof typeof difficultyDescriptions]
+    }.
+      
+      Respond ONLY with valid JSON (no explanations, no markdown).
+      Format:
+      [
+        { "question": "string", "answer": "string" }
+      ]
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.8,
+    });
+
+    const text = response.choices[0]?.message?.content?.trim();
+    if (!text) throw new Error("No response from OpenAI");
+
+    // --- Robust JSON extraction & parsing ---
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const jsonText = codeBlockMatch ? codeBlockMatch[1] : text;
+
+    let questions: any[] = [];
+
+    try {
+      questions = JSON.parse(jsonText);
+    } catch {
+      try {
+        const cleaned = jsonText.replace(/,\s*]/g, "]").replace(/,\s*}/g, "}");
+        questions = JSON.parse(cleaned);
+      } catch {
+        console.error("Invalid JSON from OpenAI:", text);
+        throw new Error("Failed to parse OpenAI JSON");
+      }
+    }
+
+    const flashcards = questions.map((q: any, i: number) => ({
+      questionNumber: i + 1,
+      question: q.question,
+      answer: q.answer,
+      level,
     }));
 
-    // Return Flashcards
     return new Response(JSON.stringify(flashcards), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    //   Catch Block
-    console.log("Error processing flashcards: ", err);
-    return new Response(JSON.stringify({ error: "Failed to process" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error generating flashcards:", err);
+    return new Response(
+      JSON.stringify({ error: "Failed to generate trivia" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 

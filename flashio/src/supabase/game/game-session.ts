@@ -1,8 +1,7 @@
 import { Flashcard } from "@/app/stores/flashcard-store";
-import { supabase } from "../client";
+import { supabaseClient } from "../client";
 
 export async function createGameSession(
-  userId: string,
   pack:
     | "review"
     | "basic"
@@ -12,15 +11,27 @@ export async function createGameSession(
     | "mythic"
     | "legendary"
 ) {
-  const { data: session, error } = await supabase
+  // ✅ Get the logged-in user directly from Supabase auth
+  const {
+    data: { user },
+    error: userError,
+  } = await supabaseClient.auth.getUser();
+
+  if (userError || !user) throw new Error("User not authenticated");
+
+  const { data: session, error } = await supabaseClient
     .from("sessions")
-    .insert({ user_id: userId, pack: pack })
+    .insert({
+      user_id: user.id, // ✅ Use current user’s UUID
+      pack,
+    })
     .select()
     .single();
 
-  if (error) throw new Error(error.message, {});
+  if (error) throw new Error(error.message);
   return session;
 }
+
 export async function insertFlashcardsToSession(
   sessionId: string,
   flashcards: Flashcard[]
@@ -33,7 +44,7 @@ export async function insertFlashcardsToSession(
     question_number: card.questionNumber,
   }));
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("flashcards")
     .insert(cardsToInsert);
 
@@ -42,7 +53,7 @@ export async function insertFlashcardsToSession(
 }
 
 export async function getFlashcardsBySession(sessionId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("flashcards")
     .select("*")
     .eq("session_id", sessionId);
@@ -54,9 +65,37 @@ export async function getFlashcardsBySession(sessionId: string) {
 export async function submitAnswers(
   answers: { id: string; user_answer: string; is_correct: boolean }[]
 ) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from("flashcards")
     .upsert(answers, { onConflict: "id" });
   if (error) throw new Error(error.message, {});
   return data;
+}
+
+export async function getAllSessionsForUser() {
+  const { data, error } = await supabaseClient.auth.getUser();
+
+  if (error) {
+    console.error("Error fetching user:", error);
+    return null;
+  }
+
+  const user = data?.user;
+  if (!user) {
+    console.warn("No user found.");
+    return null;
+  }
+
+  // Now you can fetch sessions for this user
+  const { data: sessions, error: sessionsError } = await supabaseClient
+    .from("sessions")
+    .select("*")
+    .eq("user_id", user.id);
+
+  if (sessionsError) {
+    console.error("Error fetching sessions:", sessionsError);
+    return null;
+  }
+
+  return sessions;
 }
