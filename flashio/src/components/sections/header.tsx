@@ -15,7 +15,7 @@ import { useUserStore } from "@/app/stores/user-store";
 import Link from "next/link";
 
 export default function Header() {
-  const { authUser, userCleverShards } = useUserStore();
+  const { userCleverShards } = useUserStore();
   return (
     <div className=" sticky left-0 right-0 top-4 z-999">
       <div className="flex justify-between items-center sm:h-14 h-16 mt-2 mx-4 px-2 rounded-lg bg-black/50 backdrop-blur-3xl">
@@ -38,7 +38,6 @@ export default function Header() {
               {userCleverShards}
             </div>
           </div>
-
           <DropdownMenu>
             <DropdownMenuTrigger className="rounded-sm bg-pink-500 p-1 size-10 aspect-square flex items-center justify-center text-white">
               <MenuIcon />
@@ -73,10 +72,11 @@ export default function Header() {
                 <Link href={"/sessions"}>Sessions</Link>
               </DropdownMenuItem>
               <DropdownMenuItem
+                asChild
                 onClick={signOut}
-                className="rounded-none lg:hover:bg-white/20 text-pink-100 hover:text-white"
+                className="rounded-none lg:hover:bg-white/20 text-pink-100 focus:text-white"
               >
-                Log Out <LogOut className="text-pink-100 hover:text-white" />
+                <div>Log Out</div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -74,20 +74,24 @@ export default function QuizComponent() {
 
   if (completed) return <CompletionOverlay />;
 
+  console.log("using questions", questionCards);
+
   return (
     <div className="px-4 h-[calc(100dvh-64px)] relative flex flex-col items-center justify-start overflow-hidden pt-4">
       {/* Main Active Card */}
-      <Flashcard
-        key={questionCards[currentIndex].questionNumber}
-        questionNumber={questionCards[currentIndex].questionNumber}
-        question={questionCards[currentIndex].question}
-        answer={questionCards[currentIndex].answer}
-        isActive
-        onComplete={nextCard}
-      />
+      <div className="max-w-xl w-full">
+        <Flashcard
+          key={questionCards[currentIndex].questionNumber}
+          questionNumber={questionCards[currentIndex].questionNumber}
+          question={questionCards[currentIndex].question}
+          answer={questionCards[currentIndex].answer}
+          isActive
+          onComplete={nextCard}
+        />
+      </div>
 
       {/* Upcoming Cards (Fanned Out) */}
-      <div className="absolute bottom-0 flex items-end justify-center">
+      <div className="absolute bottom-0 flex items-end justify-center bg-red-400">
         {questionCards
           .slice(currentIndex + 1, currentIndex + 6)
           .map((card, idx) => {

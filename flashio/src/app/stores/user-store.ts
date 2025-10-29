@@ -17,156 +17,347 @@ export type UserStore = {
   addCleverShards: (amount: number) => Promise<void>;
 };
 
-export const useUserStore = create<UserStore>((set, get) => ({
-  authUser: null,
-  userId: "",
-  userXp: 0,
-  userCleverShards: 0,
-  loading: false,
+type ChannelRef = {
+  channel: ReturnType<typeof supabaseClient.channel> | null;
+  retryCount: number;
+  retryTimer?: number | NodeJS.Timeout | null;
+  unsubscribed: boolean;
+};
 
-  initAuthListener: () => {
-    let userChannel: ReturnType<typeof supabaseClient.channel> | null = null;
-    let retryCount = 0;
+export const useUserStore = create<UserStore>((set, get) => {
+  // avoid reace ondition on fetches
+  let fetchRequestId = 0;
 
-    const subscribeToUser = async (userId: string) => {
-      if (!userId) return console.warn("subscribeToUser called with no userId");
-      if (userChannel) return console.log("Already subscribed, skipping");
+  // no more than one channel at a time
+  const userChannelRef: ChannelRef = {
+    channel: null,
+    retryCount: 0,
+    retryTimer: null,
+    unsubscribed: false,
+  };
 
-      // Ensure we have a valid session / JWT
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
+  const clearChannel = () => {
+    if (userChannelRef.unsubscribed) return; // guard
+    userChannelRef.unsubscribed = true;
 
-      if (!accessToken) {
-        console.warn("No JWT token, cannot subscribe yet");
-        return;
-      }
-
-      userChannel = supabaseClient
-        .channel(`user-changes-${userId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "users",
-            filter: `id=eq.${userId}`,
-          },
-          (payload) => {
-            const newData = payload.new as {
-              xp: number;
-              clever_shards: number;
-            };
-            set({
-              userXp: newData.xp,
-              userCleverShards: newData.clever_shards,
-            });
-          }
-        )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") {
-            console.log("Subscribed ");
-            retryCount = 0; // reset retry count
-          } else if (status === "CHANNEL_ERROR") {
-            console.error("subscribe error");
-            userChannel = null;
-            // Retry once after 2s
-            if (retryCount < 1) {
-              retryCount++;
-              console.log("retrying in 2s...");
-              setTimeout(() => subscribeToUser(userId), 2000);
-            }
-          } else if (status === "CLOSED") {
-            console.log("channel closed");
-            userChannel = null;
-          }
-        });
-    };
-
-    // Initial auth check
-    supabaseClient.auth.getUser().then(async ({ data }) => {
-      const currentUser = data.user;
-
-      if (currentUser) {
-        set({ authUser: currentUser, userId: currentUser.id });
-        await get().fetchUserData();
-        await subscribeToUser(currentUser.id);
-      }
-    });
-
-    // Listen for login/logout
-    const { data: listener } = supabaseClient.auth.onAuthStateChange(
-      async (_event, session) => {
-        const currentUser = session?.user ?? null;
-
-        set({ authUser: currentUser, userId: currentUser?.id ?? "" });
-
-        // Unsubscribe old channel
-        if (userChannel) {
-          userChannel.unsubscribe();
-          userChannel = null;
-        }
-
-        if (currentUser) {
-          await get().fetchUserData();
-          await subscribeToUser(currentUser.id);
+    try {
+      if (userChannelRef.channel) {
+        try {
+          userChannelRef.channel.unsubscribe();
+        } catch (e) {
+          console.warn("Error while unsubscribing channel:", e);
         }
       }
-    );
+    } finally {
+      if (userChannelRef.retryTimer) {
+        clearTimeout(userChannelRef.retryTimer as any);
+      }
+      userChannelRef.channel = null;
+      userChannelRef.retryCount = 0;
+      userChannelRef.retryTimer = null;
+    }
+  };
 
-    return () => {
-      listener.subscription.unsubscribe();
-      userChannel?.unsubscribe();
-    };
-  },
-
-  fetchUserData: async () => {
-    const { userId } = get();
-
-    set({ loading: true }); // start loading
-
+  const subscribeToUser = async (userId: string) => {
     if (!userId) {
-      set({ loading: false });
+      console.warn("subscribeToUser called with empty userId");
       return;
     }
 
-    const { data, error } = await supabaseClient
-      .from("users")
-      .select("id, xp, clever_shards")
-      .eq("id", userId)
-      .single();
+    // skip if already in channel
+    if (userChannelRef.channel && !userChannelRef.unsubscribed) {
+      console.log("Already have active channel; skipping subscribe");
+      return;
+    }
 
-    if (error) console.error("Error fetching user data:", error);
-    else if (data)
-      set({
-        userId: data.id,
-        userXp: data.xp,
-        userCleverShards: data.clever_shards,
+    userChannelRef.unsubscribed = false;
+
+    // avoid flooding logs for repeat failures
+    const backoff = (attempt: number) => {
+      const base = 1000; // 1s
+      const max = 16000; // cap to 16s
+      return Math.min(base * 2 ** attempt, max);
+    };
+
+    const trySubscribe = async () => {
+      if (userChannelRef.unsubscribed) return; // bail if unsubscribed during backoff
+
+      // check session
+      let accessToken: string | undefined;
+      try {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        accessToken = sessionData.session?.access_token ?? undefined;
+      } catch (e) {
+        console.warn("Failed to get session for subscription:", e);
+      }
+
+      if (!accessToken) {
+        console.warn("No access token; will not subscribe now");
+        // retry, but limit retries
+        if (userChannelRef.retryCount < 5) {
+          const delay = backoff(userChannelRef.retryCount);
+          userChannelRef.retryCount++;
+          userChannelRef.retryTimer = setTimeout(trySubscribe, delay);
+        } else {
+          console.error("Max subscribe attempts reached (no token).");
+        }
+        return;
+      }
+
+      // create channel
+      try {
+        // clean previous channels
+        clearChannel();
+
+        const channel = supabaseClient
+          .channel(`user-changes-${userId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "users",
+              filter: `id=eq.${userId}`,
+            },
+            (payload) => {
+              try {
+                const newData = payload.new as {
+                  xp?: number;
+                  clever_shards?: number;
+                };
+                // update present fields
+                set((s) => ({
+                  userXp:
+                    typeof newData.xp === "number" ? newData.xp : s.userXp,
+                  userCleverShards:
+                    typeof newData.clever_shards === "number"
+                      ? newData.clever_shards
+                      : s.userCleverShards,
+                }));
+              } catch (err) {
+                console.error("Error processing realtime payload:", err);
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              console.log("Realtime channel SUBSCRIBED for user", userId);
+              userChannelRef.channel = channel;
+              userChannelRef.retryCount = 0;
+            } else if (status === "CHANNEL_ERROR") {
+              console.error("Realtime CHANNEL_ERROR for user", userId);
+              // cleanup and retry
+              clearChannel();
+              if (userChannelRef.retryCount < 5) {
+                const delay = backoff(userChannelRef.retryCount);
+                userChannelRef.retryCount++;
+                userChannelRef.retryTimer = setTimeout(trySubscribe, delay);
+              } else {
+                console.error("Max channel retry attempts reached.");
+              }
+            } else if (status === "CLOSED") {
+              console.log("Realtime channel CLOSED for user", userId);
+              // clear ref
+              clearChannel();
+            } else {
+              // other statuses]
+              console.debug("Realtime channel status:", status);
+            }
+          });
+
+        // keep a reference for imiidiate returns
+        userChannelRef.channel = channel;
+      } catch (err) {
+        console.error("subscribeToUser unexpected error:", err);
+        clearChannel();
+      }
+    };
+
+    // start first try immediately
+    await trySubscribe();
+
+    // return stable unsubscribe function
+    return () => clearChannel();
+  };
+
+  return {
+    authUser: null,
+    userId: "",
+    userXp: 0,
+    userCleverShards: 0,
+    loading: false,
+
+    initAuthListener: () => {
+      let cleanupCalled = false;
+      // try picking up exisiting sess
+      (async () => {
+        try {
+          const { data } = await supabaseClient.auth.getUser();
+          const currentUser = data.user ?? null;
+          if (currentUser) {
+            set({ authUser: currentUser, userId: currentUser.id });
+            // fetch user data
+            get()
+              .fetchUserData()
+              .catch((e) => {
+                console.error("Initial fetchUserData error:", e);
+                // ensure loading flag cleaned just in case
+                set({ loading: false });
+              });
+            // start realtime subscribe
+            subscribeToUser(currentUser.id).catch((e) => {
+              console.warn("Initial subscribe error:", e);
+            });
+          } else {
+            // ensure not left in loading
+            set({ authUser: null, userId: "", loading: false });
+          }
+        } catch (err) {
+          console.error("initAuthListener initial getUser failed:", err);
+        }
+      })();
+
+      // register auth state listener
+      const { data: listener } = supabaseClient.auth.onAuthStateChange(
+        async (_event, session) => {
+          try {
+            const currentUser = session?.user ?? null;
+            // Unsubscribe existing channel
+            clearChannel();
+
+            if (!currentUser) {
+              // logged out
+              set({
+                authUser: null,
+                userId: "",
+                userXp: 0,
+                userCleverShards: 0,
+                loading: false,
+              });
+              return;
+            }
+
+            // logged in
+            set({ authUser: currentUser, userId: currentUser.id });
+            // fetch fresh data
+            get()
+              .fetchUserData()
+              .catch((e) => {
+                console.error("fetchUserData after auth change error:", e);
+                set({ loading: false });
+              });
+            // subscribe to realtime updates
+            subscribeToUser(currentUser.id).catch((e) => {
+              console.warn("subscribeToUser after auth change error:", e);
+            });
+          } catch (e) {
+            console.error("onAuthStateChange handler error:", e);
+            // ensure loading cleared to avoid stuck state
+            set({ loading: false });
+          }
+        }
+      );
+
+      const cleanup = () => {
+        if (cleanupCalled) return;
+        cleanupCalled = true;
+
+        try {
+          if (listener?.subscription) {
+            try {
+              listener.subscription.unsubscribe();
+            } catch (e) {
+              console.warn("Error unsubscribing auth listener:", e);
+            }
+          }
+        } catch (e) {
+          console.warn("Error during auth listener cleanup:", e);
+        } finally {
+          clearChannel();
+        }
+      };
+
+      return cleanup;
+    },
+
+    fetchUserData: async () => {
+      const requestId = ++fetchRequestId;
+      // stop if already loading
+      const { userId, loading } = get();
+      if (loading) {
+        // allow concurrent callers
+        return;
+      }
+
+      set({ loading: true });
+      try {
+        if (!userId) {
+          console.warn("fetchUserData called without userId");
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from("users")
+          .select("id, xp, clever_shards")
+          .eq("id", userId)
+          .maybeSingle();
+
+        // ignore stale responses
+        if (requestId !== fetchRequestId) {
+          console.warn("Stale fetchUserData response ignored");
+          return;
+        }
+
+        if (error) {
+          console.error("fetchUserData error:", error);
+          return;
+        }
+
+        if (data) {
+          set({
+            userId: data.id,
+            userXp: data.xp ?? 0,
+            userCleverShards: data.clever_shards ?? 0,
+          });
+        } else {
+          console.warn("No user record returned for id:", userId);
+        }
+      } catch (err) {
+        console.error("Unexpected fetchUserData error:", err);
+      } finally {
+        // ALWAYS clear loading regardless of anythig
+        set({ loading: false });
+      }
+    },
+
+    addXp: async (amount: number) => {
+      const { userId } = get();
+      if (!userId) {
+        console.warn("addXp called without userId");
+        return;
+      }
+
+      const { error } = await supabaseClient.rpc("add_xp", {
+        uid: userId,
+        amt: amount,
       });
 
-    set({ loading: false });
-  },
+      if (error) console.error("Error adding XP:", error);
+    },
 
-  addXp: async (amount: number) => {
-    const { userId } = get();
-    if (!userId) return;
+    addCleverShards: async (amount: number) => {
+      const { userId } = get();
+      if (!userId) {
+        console.warn("addCleverShards called without userId");
+        return;
+      }
 
-    const { error } = await supabaseClient.rpc("add_xp", {
-      uid: userId,
-      amt: amount,
-    });
+      const { error } = await supabaseClient.rpc("add_clever_shards", {
+        uid: userId,
+        amt: amount,
+      });
 
-    if (error) console.error("Error adding XP:", error);
-  },
-
-  addCleverShards: async (amount: number) => {
-    const { userId } = get();
-    if (!userId) return;
-
-    const { error } = await supabaseClient.rpc("add_clever_shards", {
-      uid: userId,
-      amt: amount,
-    });
-
-    if (error) console.error("Error adding XP:", error);
-  },
-}));
+      if (error) console.error("Error adding clever shards:", error);
+    },
+  };
+});

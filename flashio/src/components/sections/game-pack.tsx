@@ -11,7 +11,7 @@ import { useViewStore } from "@/app/stores/view-store";
 import { useFlashcardStore } from "@/app/stores/flashcard-store";
 import { motion } from "motion/react";
 import { createGameSession } from "@/supabase/game/game-session";
-import { useUserStore } from "@/app/stores/user-store";
+import { getFlashcardsForReview } from "@/supabase/game/review";
 
 export interface GamePackProps {
   title: string;
@@ -65,8 +65,6 @@ export default function GamePack({ ...props }: GamePackProps) {
   const setGameSession = useFlashcardStore((state) => state.setGameSession);
   const setFlashcards = useFlashcardStore((store) => store.setFlashcards);
   const view = useViewStore((state) => state.view);
-  const userId = useUserStore((state) => state.userId);
-  const selectedPack = useViewStore((state) => state.selectedPack);
 
   const handleConfirmPack = async () => {
     try {
@@ -77,20 +75,25 @@ export default function GamePack({ ...props }: GamePackProps) {
 
       const pack_level = selectedPack.level;
 
-      // make the api call the right thing
-      const endpoint =
-        selectedPack.title === "Review Pack"
-          ? "/api/review-pack"
-          : "/api/generate-questions";
+      // TODO: This is broken, it wont switch to next card in quiz view
+      // handle review pack separately
+      if (selectedPack.title === "Review Pack") {
+        const review_flashcards = await getFlashcardsForReview();
+        useFlashcardStore.getState().reset(); //reset store just in case
+        setFlashcards(review_flashcards);
+        const gameSession = await createGameSession(props.pack_type);
+        setGameSession(gameSession.id);
+        return; // break out to skip OpenAI generation
+      }
 
       // call openai
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/generate-questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ level: pack_level }),
       });
 
-      if (!res.ok) throw new Error(`Failed to fetch from ${endpoint}`);
+      if (!res.ok) throw new Error(`Failed to fetch from generate-quesitions`);
 
       const flashcards = await res.json();
       console.log("Generated Flashcards:", flashcards);

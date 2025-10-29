@@ -118,3 +118,58 @@ export async function updateSessionRewards(
   if (error) throw new Error(error.message);
   return data;
 }
+
+export async function getUserStats() {
+  // get user sessions
+  const sessions = await getAllSessionsForUser();
+  if (!sessions || sessions.length === 0) {
+    return {
+      totalSessions: 0,
+      totalAnswered: 0,
+      totalCorrect: 0,
+      accuracy: 0,
+      totalXp: 0,
+      totalCleverShards: 0,
+      lastSession: null,
+    };
+  }
+
+  // get cards for each session
+  const flashcardsArrays = await Promise.all(
+    sessions.map((session) => getFlashcardsBySession(session.id))
+  );
+
+  // flatten
+  const allFlashcards = flashcardsArrays.flat();
+
+  // stats maths
+  const totalAnswered = allFlashcards.length;
+  const totalCorrect = allFlashcards.filter((f) => f.is_correct).length;
+  const accuracy = totalAnswered ? (totalCorrect / totalAnswered) * 100 : 0;
+
+  const totalXp = sessions.reduce((sum, s) => sum + (s.xp_rewarded || 0), 0);
+  const totalCleverShards = sessions.reduce(
+    (sum, s) => sum + (s.clever_shards_rewarded || 0),
+    0
+  );
+  const totalSessions = sessions.length;
+  const lastSession =
+    sessions.length > 0
+      ? sessions.reduce(
+          (latest, s) =>
+            new Date(s.created_at) > new Date(latest.created_at) ? s : latest,
+          sessions[0]
+        ).created_at
+      : null;
+
+  // Step 4: Return clean summary
+  return {
+    totalSessions,
+    totalAnswered,
+    totalCorrect,
+    accuracy,
+    totalXp,
+    totalCleverShards,
+    lastSession,
+  };
+}

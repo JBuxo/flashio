@@ -5,7 +5,7 @@ import RankBadge from "../sections/rank-badge";
 export default function Dashboard({ xp }: { xp: number }) {
   return (
     <>
-      <div className="px-8">
+      <div className="px-8 mt-2">
         <RankBadge xp={xp} />
       </div>
 
