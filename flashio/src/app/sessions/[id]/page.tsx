@@ -8,10 +8,12 @@ import { getFlashcardsBySession } from "@/supabase/game/game-session";
 import Loader from "@/components/ui/loader";
 import { motion, AnimatePresence } from "motion/react";
 import Flashcard from "@/components/sections/flashcard";
+import { Flashcard as FlashcardType } from "@/app/stores/flashcard-store";
 
 export default function SessionPage() {
-  const { id: sessionId } = useParams<{ id: string }>();
-  const [flashCards, setFlashcards] = useState<any>(null);
+  const params = useParams() as Record<string, string | undefined>;
+  const sessionId = params.id;
+  const [flashCards, setFlashcards] = useState<FlashcardType[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +23,9 @@ export default function SessionPage() {
 
     async function loadSession() {
       try {
+        if (!sessionId) {
+          throw new Error("Session ID is missing in the route.");
+        }
         setLoading(true);
         const data = await getFlashcardsBySession(sessionId);
         if (isMounted) setFlashcards(data);
@@ -70,15 +75,16 @@ export default function SessionPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{
-              delay: 0.2, // delay for loader to disappear
+              delay: 0.2,
               duration: 0.6,
               ease: "easeOut",
               staggerChildren: 0.05,
             }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 p-4 gap-6"
           >
-            {flashCards?.map((flashcard: any, idx: number) => (
+            {flashCards?.map((flashcard: FlashcardType, idx: number) => (
               <motion.div
+                // @ts-expect-error - comes from db
                 key={flashcard.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -90,12 +96,12 @@ export default function SessionPage() {
                 className="relative"
               >
                 <Flashcard
-                  questionNumber={flashcard.question_number}
+                  questionNumber={flashcard.questionNumber}
                   question={flashcard.question}
                   answer={flashcard.answer}
                   isActive
                   isReview
-                  wasCorrect={flashcard.is_correct}
+                  wasCorrect={flashcard.isCorrect}
                 />
               </motion.div>
             ))}

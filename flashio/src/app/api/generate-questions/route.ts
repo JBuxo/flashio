@@ -1,5 +1,4 @@
 import { Flashcard } from "@/app/stores/flashcard-store";
-import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     const jsonText = codeBlockMatch ? codeBlockMatch[1] : text;
 
-    let questions: any[] = [];
+    let questions: Partial<Flashcard>[] = [];
 
     try {
       questions = JSON.parse(jsonText);
@@ -67,7 +66,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const flashcards = questions.map((q: any, i: number) => ({
+    const flashcards = questions.map((q: Partial<Flashcard>, i: number) => ({
       questionNumber: i + 1,
       question: q.question,
       answer: q.answer,
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
 }
 
 // Generate mock/test flashcards
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const flashcards: Flashcard[] = [
       {

@@ -7,32 +7,22 @@ import { supabaseClient } from "@/supabase/client";
 import { useEffect, useState } from "react";
 import Loader from "@/components/ui/loader";
 import { User } from "@supabase/supabase-js";
-import { getUserStats } from "@/supabase/game/game-session";
+import { getUserStats, UserStats } from "@/supabase/game/game-session";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import {
-  BarChart3,
-  Brain,
-  Clock,
-  SquareXIcon,
-  Star,
-  Target,
-  Trophy,
-  UserXIcon,
-  Zap,
-} from "lucide-react";
+import { BarChart3, Brain, Clock, Star, Target, UserXIcon } from "lucide-react";
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
       setLoading(true);
       try {
         const { data, error } = await supabaseClient.auth.getUser();
-        if (error) throw error;
+        if (error) throw new Error(error.message);
         const userData = data.user ?? null;
         setUser(userData);
 
@@ -51,6 +41,24 @@ export default function ProfilePage() {
 
     fetchUser();
   }, []);
+
+  async function handleDeleteAccount() {
+    const confirmed = confirm(
+      "Are you sure you want to permanently delete your account? This cannot be undone."
+    );
+    if (!confirmed) return;
+
+    const res = await fetch("/api/delete-user", { method: "DELETE" });
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(`Failed to delete account: ${data.error}`);
+    } else {
+      alert("Your account and all data were deleted successfully.");
+      // Optionally redirect to homepage or logout
+      window.location.href = "/auth/get-authed";
+    }
+  }
 
   return (
     <div className={`flex items-center justify-center h-[100dvh]`}>
@@ -192,7 +200,7 @@ export default function ProfilePage() {
 
                 <Button
                   className="rounded-none lg:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] border-3 border-black text-black flex-1 bg-red-500 hover:bg-red-400"
-                  // onClick={deleteUser}
+                  onClick={handleDeleteAccount}
                 >
                   Delete Account <UserXIcon />
                 </Button>

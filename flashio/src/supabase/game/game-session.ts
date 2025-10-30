@@ -1,6 +1,16 @@
 import { Flashcard } from "@/app/stores/flashcard-store";
 import { supabaseClient } from "../client";
 
+export interface UserStats {
+  totalSessions: number;
+  totalAnswered: number;
+  totalCorrect: number;
+  accuracy: number;
+  totalXp: number;
+  totalCleverShards: number;
+  lastSession: Date | string;
+}
+
 export async function createGameSession(
   pack:
     | "review"
@@ -32,6 +42,23 @@ export async function createGameSession(
   return session;
 }
 
+export interface GameSession {
+  id: string;
+  user_id: string;
+  pack:
+    | "review"
+    | "basic"
+    | "apprentice"
+    | "advanced"
+    | "elite"
+    | "mythic"
+    | "legendary";
+  xp_rewarded: number;
+  clever_shards_rewarded: number;
+  created_at: string | Date;
+  updated_at?: string | Date;
+}
+
 export async function insertFlashcardsToSession(
   sessionId: string,
   flashcards: Flashcard[]
@@ -59,7 +86,14 @@ export async function getFlashcardsBySession(sessionId: string) {
     .eq("session_id", sessionId);
 
   if (error) throw new Error(error.message, {});
-  return data;
+  return data.map((card: any) => ({
+    questionNumber: card.question_number,
+    question: card.question,
+    answer: card.answer,
+    isCorrect: card.is_correct,
+    id: card.id,
+    sessionId: card.session_id,
+  }));
 }
 
 export async function submitAnswers(
@@ -144,7 +178,7 @@ export async function getUserStats() {
 
   // stats maths
   const totalAnswered = allFlashcards.length;
-  const totalCorrect = allFlashcards.filter((f) => f.is_correct).length;
+  const totalCorrect = allFlashcards.filter((f) => f.isCorrect).length;
   const accuracy = totalAnswered ? (totalCorrect / totalAnswered) * 100 : 0;
 
   const totalXp = sessions.reduce((sum, s) => sum + (s.xp_rewarded || 0), 0);

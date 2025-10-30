@@ -1,26 +1,25 @@
+import { useFlashcardStore } from "@/app/stores/flashcard-store";
+import { useViewStore } from "@/app/stores/view-store";
+import { launchConfetti } from "@/lib/utils";
 import { CheckSquare2, HomeIcon, SquareXIcon } from "lucide-react";
+import { motion } from "motion/react";
+import Image from "next/image";
+import { useEffect } from "react";
 import BrandedText from "../ui/branded-text";
 import { Button } from "../ui/button";
-import { useViewStore } from "@/app/stores/view-store";
-import Image from "next/image";
-import { motion } from "motion/react";
-import { useEffect } from "react";
-import { launchConfetti } from "@/lib/utils";
-import { useFlashcardStore } from "@/app/stores/flashcard-store";
-import { useUserStore } from "@/app/stores/user-store";
 
 export default function CompletionOverlay() {
   const switchView = useViewStore((state) => state.switchView);
-  const userId = useUserStore((store) => store.userId);
   const pack = useViewStore((store) => store.selectedPack);
   const answers = useFlashcardStore((store) => store.getResults());
   const correctCount = answers.filter((a) => a.isCorrect).length;
-
-  //   XP earned based on right and wrong
-  const xp = (correctCount / answers.length) * pack!.reward_xp;
-
-  //   Shards Earned based on percentage of right and wrong
-  const shards = (correctCount / answers.length) * pack!.reward_clevershard;
+  const total = answers.length;
+  const xp = total
+    ? Math.round((correctCount / total) * Number(pack!.reward_xp)) | 0
+    : 0;
+  const shards = total
+    ? Math.round((correctCount / total) * Number(pack!.reward_clevershard)) | 0
+    : 0;
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;

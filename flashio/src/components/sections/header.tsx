@@ -1,7 +1,7 @@
 "use client";
 
 import { signOut } from "@/supabase/auth/sign-out";
-import { LogOut, MenuIcon } from "lucide-react";
+import { MenuIcon } from "lucide-react";
 import BrandedText from "../ui/branded-text";
 import {
   DropdownMenu,

@@ -2,7 +2,10 @@
 
 import Header from "@/components/sections/header";
 import BrandedText from "@/components/ui/branded-text";
-import { getAllSessionsForUser } from "@/supabase/game/game-session";
+import {
+  GameSession,
+  getAllSessionsForUser,
+} from "@/supabase/game/game-session";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Loader from "@/components/ui/loader";
@@ -11,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export default function SessionsPage() {
-  const [sessions, setSessions] = useState<any[] | null>([]);
+  const [sessions, setSessions] = useState<GameSession[] | null>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

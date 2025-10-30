@@ -50,7 +50,7 @@ export const useUserStore = create<UserStore>((set, get) => {
       }
     } finally {
       if (userChannelRef.retryTimer) {
-        clearTimeout(userChannelRef.retryTimer as any);
+        clearTimeout(userChannelRef.retryTimer);
       }
       userChannelRef.channel = null;
       userChannelRef.retryCount = 0;
