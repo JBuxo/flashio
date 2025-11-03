@@ -1,4 +1,5 @@
 import { Flashcard } from "@/app/stores/flashcard-store";
+import { requireAuth } from "@/supabase/auth/require-auth";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -7,6 +8,8 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
+    await requireAuth(); // protect route NOTE: will throw error if no auth
+
     const body = await request.json();
     const { level } = body;
 
