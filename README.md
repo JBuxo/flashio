@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid REFERENCES public.users (id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  pack text, -- changed from USER-DEFINED to text (string for pack name or type)
+  pack text,
   xp_rewarded smallint NOT NULL DEFAULT 0,
   clever_shards_rewarded smallint NOT NULL DEFAULT 0
 );
