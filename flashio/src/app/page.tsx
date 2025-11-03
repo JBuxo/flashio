@@ -21,12 +21,6 @@ export default function Home() {
     return () => unsubscribe?.();
   }, []);
 
-  useEffect(() => {
-    if (!loading && !authUser) {
-      router.push("/auth/get-authed");
-    }
-  }, [loading, authUser, router]);
-
   if (loading || !authUser) {
     return (
       <AnimatePresence>
