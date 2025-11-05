@@ -9,12 +9,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useUserStore } from "../stores/user-store";
 import Loader from "@/components/ui/loader";
 import Header from "@/components/sections/header";
-import { useRouter } from "next/router";
 
 export default function Home() {
   const { userXp, loading, authUser, initAuthListener } = useUserStore();
   const view = useViewStore((state) => state.view);
-  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = initAuthListener();

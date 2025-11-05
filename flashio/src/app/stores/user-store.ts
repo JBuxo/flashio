@@ -38,25 +38,30 @@ export const useUserStore = create<UserStore>((set, get) => {
   };
 
   const clearChannel = () => {
-    if (userChannelRef.unsubscribed) return; // guard
+    if (userChannelRef.unsubscribed) return;
+
     userChannelRef.unsubscribed = true;
 
-    try {
-      if (userChannelRef.channel) {
-        try {
-          userChannelRef.channel.unsubscribe();
-        } catch (e) {
-          console.warn("Error while unsubscribing channel:", e);
-        }
-      }
-    } finally {
-      if (userChannelRef.retryTimer) {
-        clearTimeout(userChannelRef.retryTimer);
-      }
-      userChannelRef.channel = null;
-      userChannelRef.retryCount = 0;
+    // Clear retry timer first
+    if (userChannelRef.retryTimer) {
+      clearTimeout(userChannelRef.retryTimer);
       userChannelRef.retryTimer = null;
     }
+
+    // Then unsubscribe channel
+    if (userChannelRef.channel) {
+      try {
+        const channelToRemove = userChannelRef.channel;
+        userChannelRef.channel = null;
+        supabaseClient.removeChannel(channelToRemove).catch((e) => {
+          console.warn("Error removing channel:", e);
+        });
+      } catch (e) {
+        console.warn("Error while clearing channel:", e);
+      }
+    }
+
+    userChannelRef.retryCount = 0;
   };
 
   const subscribeToUser = async (userId: string) => {
@@ -202,6 +207,8 @@ export const useUserStore = create<UserStore>((set, get) => {
 
     initAuthListener: () => {
       let cleanupCalled = false;
+      let subscriptionPromise: Promise<void> | null = null; // Change any to void
+
       // try picking up existing sess
       (async () => {
         try {
@@ -218,15 +225,25 @@ export const useUserStore = create<UserStore>((set, get) => {
               .fetchUserData()
               .catch((e) => {
                 console.error("Initial fetchUserData error:", e);
-                // ensure loading flag cleaned just in case
                 set({ loading: false });
               });
-            // start realtime subscribe
-            subscribeToUser(currentUser.id).catch((e) => {
-              console.warn("Initial subscribe error:", e);
+
+            // Delay subscription to let auth fully settle
+            subscriptionPromise = new Promise<void>((resolve) => {
+              // Add <void>
+              setTimeout(() => {
+                if (!cleanupCalled && get().authUser) {
+                  subscribeToUser(currentUser.id)
+                    .catch((e) => {
+                      console.warn("Initial subscribe error:", e);
+                    })
+                    .finally(() => resolve()); // Call resolve with no arguments
+                } else {
+                  resolve(); // Call resolve with no arguments
+                }
+              }, 1000);
             });
           } else {
-            // avoid stucking in loading
             set({
               authUser: null,
               userId: "",
@@ -236,7 +253,6 @@ export const useUserStore = create<UserStore>((set, get) => {
           }
         } catch (err) {
           console.error("initAuthListener initial getUser failed:", err);
-          // avoid sticking
           set({ initialized: true });
         }
       })();
@@ -246,6 +262,13 @@ export const useUserStore = create<UserStore>((set, get) => {
         async (_event, session) => {
           try {
             const currentUser = session?.user ?? null;
+
+            // Wait for any pending subscription before clearing
+            if (subscriptionPromise) {
+              await subscriptionPromise;
+              subscriptionPromise = null;
+            }
+
             // Unsubscribe existing channel
             clearChannel();
 
@@ -268,6 +291,7 @@ export const useUserStore = create<UserStore>((set, get) => {
               userId: currentUser.id,
               initialized: true,
             });
+
             // fetch fresh data
             get()
               .fetchUserData()
@@ -275,13 +299,27 @@ export const useUserStore = create<UserStore>((set, get) => {
                 console.error("fetchUserData after auth change error:", e);
                 set({ loading: false });
               });
-            // subscribe to realtime updates
-            subscribeToUser(currentUser.id).catch((e) => {
-              console.warn("subscribeToUser after auth change error:", e);
+
+            // Delay subscription for auth changes too
+            subscriptionPromise = new Promise<void>((resolve) => {
+              // Add <void>
+              setTimeout(() => {
+                if (!cleanupCalled && get().authUser) {
+                  subscribeToUser(currentUser.id)
+                    .catch((e) => {
+                      console.warn(
+                        "subscribeToUser after auth change error:",
+                        e
+                      );
+                    })
+                    .finally(() => resolve()); // Call resolve with no arguments
+                } else {
+                  resolve(); // Call resolve with no arguments
+                }
+              }, 1000);
             });
           } catch (e) {
             console.error("onAuthStateChange handler error:", e);
-            // avoid sticking
             set({ loading: false, initialized: true });
           }
         }
