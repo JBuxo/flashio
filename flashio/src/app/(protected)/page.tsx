@@ -11,13 +11,13 @@ import Loader from "@/components/ui/loader";
 import Header from "@/components/sections/header";
 
 export default function Home() {
-  const { userXp, loading, authUser } = useUserStore();
+  const { userXp, loading, authUser, initAuthListener } = useUserStore();
   const view = useViewStore((state) => state.view);
 
-  // useEffect(() => {
-  //   const unsubscribe = initAuthListener();
-  //   return () => unsubscribe?.();
-  // }, []);
+  useEffect(() => {
+    const unsubscribe = initAuthListener();
+    return () => unsubscribe?.();
+  }, []);
 
   useEffect(() => {
     const cleanup = useUserStore.getState().initAuthListener();
