@@ -5,7 +5,6 @@ import { create } from "zustand";
 import type { User } from "@supabase/supabase-js";
 
 export type UserStore = {
-  // public state
   authUser: User | null;
   userId: string;
   userXp: number;
@@ -13,29 +12,25 @@ export type UserStore = {
   loading: boolean;
   initialized: boolean;
 
-  // public actions
   initAuthListener: () => () => void;
   fetchUserData: () => Promise<void>;
   addXp: (amount: number) => Promise<void>;
   addCleverShards: (amount: number) => Promise<void>;
 
-  // internal guard/cleanup (not used by UI directly)
   authListenerAttached?: boolean;
   cleanupAuthListener?: () => void;
-  _channelUserId?: string; // which user the realtime channel is for
+  _channelUserId?: string;
 };
-
-// ---- Internal channel ref & helpers ----
 
 type ChannelRef = {
   channel: ReturnType<typeof supabaseClient.channel> | null;
   retryCount: number;
   retryTimer?: number | NodeJS.Timeout | null;
-  unsubscribed: boolean; // true when we intentionally stopped
+  unsubscribed: boolean;
 };
 
 export const useUserStore = create<UserStore>((set, get) => {
-  let fetchRequestId = 0; // anti-stale fetches
+  let fetchRequestId = 0;
 
   const userChannelRef: ChannelRef = {
     channel: null,
@@ -45,17 +40,19 @@ export const useUserStore = create<UserStore>((set, get) => {
   };
 
   const backoff = (attempt: number) => {
-    const base = 1000; // 1s
-    const max = 16000; // 16s cap
-    return Math.min(base * 2 ** attempt, max);
+    const base = 1000;
+    const max = 16000;
+    const delay = Math.min(base * 2 ** attempt, max);
+    console.log(`Backoff delay for attempt ${attempt}: ${delay}ms`);
+    return delay;
   };
 
-  // Hard stop: used when switching users or cleanup
   const stopChannel = () => {
-    // mark as intentionally stopped first
+    console.log("Stopping realtime channel...");
     userChannelRef.unsubscribed = true;
 
     if (userChannelRef.retryTimer) {
+      console.log("Clearing retry timer");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       clearTimeout(userChannelRef.retryTimer as any);
       userChannelRef.retryTimer = null;
@@ -68,72 +65,80 @@ export const useUserStore = create<UserStore>((set, get) => {
         supabaseClient.removeChannel(ch).catch((e) => {
           console.warn("Error removing channel:", e);
         });
+        console.log("Channel removed successfully");
       } catch (e) {
         console.warn("Error while removing channel:", e);
       }
     }
 
     userChannelRef.retryCount = 0;
+    console.log("Channel stopped, retryCount reset");
   };
 
-  // Soft clear without changing unsubscribed flag (avoid races)
   const clearChannelSoft = () => {
+    console.log("Soft clearing channel...");
     if (userChannelRef.retryTimer) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       clearTimeout(userChannelRef.retryTimer as any);
       userChannelRef.retryTimer = null;
+      console.log("Cleared soft retry timer");
     }
+
     if (userChannelRef.channel) {
       const ch = userChannelRef.channel;
       userChannelRef.channel = null;
       try {
         supabaseClient.removeChannel(ch).catch((e) => {
-          console.warn("Error removing channel:", e);
+          console.warn("Error removing channel during soft clear:", e);
         });
+        console.log("Soft channel removed successfully");
       } catch (e) {
-        console.warn("Error while soft-clearing channel:", e);
+        console.warn("Error during soft clear of channel:", e);
       }
     }
   };
 
   const subscribeToUser = async (userId: string) => {
+    console.log("subscribeToUser called with userId:", userId);
+
     if (!userId) {
-      console.warn("subscribeToUser called with empty userId");
+      console.warn("Empty userId, aborting subscription");
       return;
     }
 
-    // If already subscribed for this user and channel is active, do nothing.
     const subUserId = get()._channelUserId;
     if (
       subUserId === userId &&
       userChannelRef.channel &&
       !userChannelRef.unsubscribed
     ) {
-      console.log("Already subscribed for user", userId);
+      console.log("Already subscribed to this user:", userId);
       return;
     }
 
-    // Switch: stop whatever we had
     stopChannel();
-    // From here, we intend to subscribe again
     userChannelRef.unsubscribed = false;
 
     const trySubscribe = async () => {
-      if (userChannelRef.unsubscribed) return; // a stop happened during backoff
+      if (userChannelRef.unsubscribed) {
+        console.log("Aborting subscription because unsubscribed flag is true");
+        return;
+      }
 
-      // Refresh token presence
       let accessToken: string | undefined;
       try {
         const { data: sessionData } = await supabaseClient.auth.getSession();
         accessToken = sessionData.session?.access_token ?? undefined;
+        console.log("Fetched access token:", accessToken);
       } catch (e) {
         console.warn("Failed to get session for subscription:", e);
       }
 
       if (!accessToken) {
+        console.log("No access token found");
         if (userChannelRef.retryCount < 5) {
           const delay = backoff(userChannelRef.retryCount++);
-          console.log(`Retrying subscribe (no token) in ${delay}ms`);
+          console.log(`Retrying subscription in ${delay}ms`);
           userChannelRef.retryTimer = setTimeout(trySubscribe, delay);
         } else {
           console.error("Max subscribe attempts reached (no token)");
@@ -141,7 +146,6 @@ export const useUserStore = create<UserStore>((set, get) => {
         return;
       }
 
-      // Create channel (do NOT call stop/clear here to avoid flip-flopping flags)
       try {
         const channel = supabaseClient
           .channel(`user-changes-${userId}`)
@@ -154,6 +158,7 @@ export const useUserStore = create<UserStore>((set, get) => {
               filter: `id=eq.${userId}`,
             },
             (payload) => {
+              console.log("Realtime payload received:", payload);
               try {
                 const newData = payload.new as {
                   xp?: number;
@@ -167,12 +172,14 @@ export const useUserStore = create<UserStore>((set, get) => {
                       ? newData.clever_shards
                       : s.userCleverShards,
                 }));
+                console.log("Updated state from realtime payload:", get());
               } catch (err) {
                 console.error("Error processing realtime payload:", err);
               }
             }
           )
           .subscribe((status) => {
+            console.log("Channel status:", status);
             if (status === "SUBSCRIBED") {
               console.log("Realtime channel SUBSCRIBED for user", userId);
               userChannelRef.channel = channel;
@@ -180,7 +187,7 @@ export const useUserStore = create<UserStore>((set, get) => {
               set({ _channelUserId: userId });
             } else if (status === "CHANNEL_ERROR") {
               console.error("Realtime CHANNEL_ERROR for user", userId);
-              if (userChannelRef.unsubscribed) return; // ignore after stop
+              if (userChannelRef.unsubscribed) return;
               clearChannelSoft();
               if (userChannelRef.retryCount < 3) {
                 const delay = backoff(userChannelRef.retryCount++);
@@ -194,20 +201,20 @@ export const useUserStore = create<UserStore>((set, get) => {
             } else if (status === "CLOSED") {
               console.log("Realtime channel CLOSED for user", userId);
               if (!userChannelRef.unsubscribed) {
-                // unexpected close -> retry
                 clearChannelSoft();
                 if (userChannelRef.retryCount < 3) {
                   const delay = backoff(userChannelRef.retryCount++);
+                  console.log(
+                    `Retrying channel after unexpected close in ${delay}ms`
+                  );
                   userChannelRef.retryTimer = setTimeout(trySubscribe, delay);
                 }
               }
-            } else {
-              console.debug("Realtime channel status:", status);
             }
           });
 
-        // Keep reference for immediate guards
         userChannelRef.channel = channel;
+        console.log("Channel created successfully:", channel);
       } catch (err) {
         console.error("subscribeToUser unexpected error:", err);
         clearChannelSoft();
@@ -218,16 +225,18 @@ export const useUserStore = create<UserStore>((set, get) => {
     return () => stopChannel();
   };
 
-  // Idempotent auth state setter
   const safeSetAuthUser = (nextUser: User | null) => {
+    console.log("safeSetAuthUser called with:", nextUser);
     const prev = get().authUser;
     const same = (prev?.id ?? null) === (nextUser?.id ?? null);
     if (same) {
+      console.log("User unchanged");
       if (!get().initialized) set({ initialized: true, loading: false });
-      return false; // no change
+      return false;
     }
 
     if (!nextUser) {
+      console.log("Clearing user state (logged out)");
       set({
         authUser: null,
         userId: "",
@@ -240,23 +249,24 @@ export const useUserStore = create<UserStore>((set, get) => {
     }
 
     set({ authUser: nextUser, userId: nextUser.id, initialized: true });
+    console.log("User state updated:", get());
     return true;
   };
 
   const startRealtimeFor = async (uid: string) => {
-    // If already for uid, do nothing
+    console.log("startRealtimeFor called with userId:", uid);
     if (
       get()._channelUserId === uid &&
       userChannelRef.channel &&
       !userChannelRef.unsubscribed
     ) {
+      console.log("Already running realtime for this user");
       return;
     }
     await subscribeToUser(uid);
   };
 
   return {
-    // ----- PUBLIC STATE -----
     authUser: null,
     userId: "",
     userXp: 0,
@@ -264,10 +274,12 @@ export const useUserStore = create<UserStore>((set, get) => {
     loading: false,
     initialized: false,
 
-    // ----- ACTIONS -----
     initAuthListener: () => {
-      // guard against multiple attachments
+      console.log("initAuthListener called");
       if (get().authListenerAttached) {
+        console.log(
+          "Auth listener already attached, returning existing cleanup"
+        );
         return get().cleanupAuthListener ?? (() => {});
       }
       set({ authListenerAttached: true });
@@ -275,30 +287,21 @@ export const useUserStore = create<UserStore>((set, get) => {
       let cleanupCalled = false;
       let delayPromise: Promise<void> | null = null;
 
-      // 1) Pick up existing session once
       (async () => {
         try {
           const { data } = await supabaseClient.auth.getUser();
           const currentUser = (data.user as User | null) ?? null;
+          console.log("Initial user fetched:", currentUser);
           const changed = safeSetAuthUser(currentUser);
 
           if (currentUser) {
-            // async fetch (ignore failures)
             get()
               .fetchUserData()
-              .catch((e) => {
-                console.error("Initial fetchUserData error:", e);
-                set({ loading: false });
-              });
-
-            // debounce realtime to let auth settle
-            delayPromise = new Promise<void>((resolve) =>
-              setTimeout(resolve, 1000)
-            );
+              .catch((e) => console.error("Initial fetchUserData error:", e));
+            delayPromise = new Promise((resolve) => setTimeout(resolve, 1000));
             await delayPromise;
             if (!cleanupCalled) await startRealtimeFor(currentUser.id);
           } else {
-            // ensure nothing lingering
             stopChannel();
             set({ _channelUserId: undefined });
           }
@@ -308,12 +311,12 @@ export const useUserStore = create<UserStore>((set, get) => {
         }
       })();
 
-      // 2) Auth change listener (react only to actual user-id changes)
       const { data: listener } = supabaseClient.auth.onAuthStateChange(
         async (_event, session) => {
+          console.log("onAuthStateChange triggered:", _event, session?.user);
           try {
             if (delayPromise) {
-              await delayPromise; // avoid racing with initial branch
+              await delayPromise;
               delayPromise = null;
             }
 
@@ -322,22 +325,18 @@ export const useUserStore = create<UserStore>((set, get) => {
             const changed = safeSetAuthUser(currentUser);
 
             if (!currentUser) {
-              // logged out
+              console.log("Logged out detected");
               stopChannel();
               set({ _channelUserId: undefined });
               return;
             }
 
-            // Only do work on change of identity
             if (changed || prevUser?.id !== currentUser.id) {
               get()
                 .fetchUserData()
-                .catch((e) => {
-                  console.error("fetchUserData after auth change error:", e);
-                  set({ loading: false });
-                });
-
-              // debounce again on transitions
+                .catch((e) =>
+                  console.error("fetchUserData after auth change error:", e)
+                );
               await new Promise<void>((r) => setTimeout(r, 1000));
               if (!cleanupCalled) await startRealtimeFor(currentUser.id);
             }
@@ -349,6 +348,7 @@ export const useUserStore = create<UserStore>((set, get) => {
       );
 
       const cleanup = () => {
+        console.log("cleanup function called");
         if (cleanupCalled) return;
         cleanupCalled = true;
         try {
@@ -370,12 +370,9 @@ export const useUserStore = create<UserStore>((set, get) => {
     },
 
     fetchUserData: async () => {
+      console.log("fetchUserData called");
       const requestId = ++fetchRequestId;
-      const { userId, loading } = get();
-      if (loading) {
-        // allow overlapping callers but don't gate on this flag
-      }
-
+      const { userId } = get();
       set({ loading: true });
       try {
         if (!userId) {
@@ -388,6 +385,7 @@ export const useUserStore = create<UserStore>((set, get) => {
           .select("id, xp, clever_shards")
           .eq("id", userId)
           .maybeSingle();
+        console.log("fetchUserData response:", { data, error });
 
         if (requestId !== fetchRequestId) {
           console.warn("Stale fetchUserData response ignored");
@@ -405,6 +403,7 @@ export const useUserStore = create<UserStore>((set, get) => {
             userXp: data.xp ?? 0,
             userCleverShards: data.clever_shards ?? 0,
           });
+          console.log("User state updated from fetchUserData:", get());
         } else {
           console.warn("No user record returned for id:", userId);
         }
@@ -416,6 +415,7 @@ export const useUserStore = create<UserStore>((set, get) => {
     },
 
     addXp: async (amount: number) => {
+      console.log("addXp called with amount:", amount);
       const { userId } = get();
       if (!userId) {
         console.warn("addXp called without userId");
@@ -426,9 +426,11 @@ export const useUserStore = create<UserStore>((set, get) => {
         amt: amount,
       });
       if (error) console.error("Error adding XP:", error);
+      else console.log("XP added successfully");
     },
 
     addCleverShards: async (amount: number) => {
+      console.log("addCleverShards called with amount:", amount);
       const { userId } = get();
       if (!userId) {
         console.warn("addCleverShards called without userId");
@@ -439,6 +441,7 @@ export const useUserStore = create<UserStore>((set, get) => {
         amt: amount,
       });
       if (error) console.error("Error adding clever shards:", error);
+      else console.log("Clever shards added successfully");
     },
   };
 });
