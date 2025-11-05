@@ -2,7 +2,6 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-
 import Loader from "@/components/ui/loader";
 import { useUserStore } from "@/app/stores/user-store";
 
@@ -11,41 +10,33 @@ interface ProtectedProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedProps) {
-  const currentPath = usePathname();
-  const router = useRouter();
   const { authUser, loading, initialized, initAuthListener } = useUserStore();
-  const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
+  const currentPath = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  // ensure mounted bc of annnoying issue
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const unsubscribe = initAuthListener();
     return () => unsubscribe?.();
   }, [initAuthListener]);
 
+  // Redirect after loading & initialization
   useEffect(() => {
-    // after mounting
-    if (
-      isMounted &&
-      initialized &&
-      !loading &&
-      !authUser &&
-      currentPath !== "/auth/get-authed"
-    ) {
+    if (!mounted || loading || !initialized) return;
+    if (!authUser && currentPath !== "/auth/get-authed") {
+      console.log("Redirecting to login page...");
       router.push("/auth/get-authed");
     }
-  }, [isMounted, initialized, loading, authUser, router, currentPath]);
+  }, [mounted, initialized, loading, authUser, router, currentPath]);
 
-  // Show loader
-  if (!isMounted || !initialized || loading || !authUser) {
-    //  allow the auth page
-    if (currentPath === "/auth/get-authed") {
-      return <>{children}</>;
-    }
-
+  if (
+    !mounted ||
+    loading ||
+    !initialized ||
+    (!authUser && currentPath !== "/auth/get-authed")
+  ) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader />
