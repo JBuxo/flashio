@@ -10,6 +10,7 @@ export type UserStore = {
   userXp: number;
   userCleverShards: number;
   loading: boolean;
+  initialized: boolean;
 
   initAuthListener: () => () => void;
   fetchUserData: () => Promise<void>;
@@ -25,7 +26,7 @@ type ChannelRef = {
 };
 
 export const useUserStore = create<UserStore>((set, get) => {
-  // avoid reace ondition on fetches
+  // avoid race condition on fetches
   let fetchRequestId = 0;
 
   // no more than one channel at a time
@@ -160,12 +161,12 @@ export const useUserStore = create<UserStore>((set, get) => {
               // clear ref
               clearChannel();
             } else {
-              // other statuses]
+              // other statuses
               console.debug("Realtime channel status:", status);
             }
           });
 
-        // keep a reference for imiidiate returns
+        // keep a reference for immediate returns
         userChannelRef.channel = channel;
       } catch (err) {
         console.error("subscribeToUser unexpected error:", err);
@@ -186,16 +187,21 @@ export const useUserStore = create<UserStore>((set, get) => {
     userXp: 0,
     userCleverShards: 0,
     loading: false,
+    initialized: false,
 
     initAuthListener: () => {
       let cleanupCalled = false;
-      // try picking up exisiting sess
+      // try picking up existing sess
       (async () => {
         try {
           const { data } = await supabaseClient.auth.getUser();
           const currentUser = data.user ?? null;
           if (currentUser) {
-            set({ authUser: currentUser, userId: currentUser.id });
+            set({
+              authUser: currentUser,
+              userId: currentUser.id,
+              initialized: true,
+            });
             // fetch user data
             get()
               .fetchUserData()
@@ -209,11 +215,18 @@ export const useUserStore = create<UserStore>((set, get) => {
               console.warn("Initial subscribe error:", e);
             });
           } else {
-            // ensure not left in loading
-            set({ authUser: null, userId: "", loading: false });
+            // avoid stucking in loading
+            set({
+              authUser: null,
+              userId: "",
+              loading: false,
+              initialized: true,
+            });
           }
         } catch (err) {
           console.error("initAuthListener initial getUser failed:", err);
+          // avoid sticking
+          set({ initialized: true });
         }
       })();
 
@@ -233,12 +246,17 @@ export const useUserStore = create<UserStore>((set, get) => {
                 userXp: 0,
                 userCleverShards: 0,
                 loading: false,
+                initialized: true,
               });
               return;
             }
 
             // logged in
-            set({ authUser: currentUser, userId: currentUser.id });
+            set({
+              authUser: currentUser,
+              userId: currentUser.id,
+              initialized: true,
+            });
             // fetch fresh data
             get()
               .fetchUserData()
@@ -252,8 +270,8 @@ export const useUserStore = create<UserStore>((set, get) => {
             });
           } catch (e) {
             console.error("onAuthStateChange handler error:", e);
-            // ensure loading cleared to avoid stuck state
-            set({ loading: false });
+            // avoid sticking
+            set({ loading: false, initialized: true });
           }
         }
       );
@@ -325,7 +343,7 @@ export const useUserStore = create<UserStore>((set, get) => {
       } catch (err) {
         console.error("Unexpected fetchUserData error:", err);
       } finally {
-        // ALWAYS clear loading regardless of anythig
+        // ALWAYS clear loading regardless of anything
         set({ loading: false });
       }
     },

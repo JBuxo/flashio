@@ -13,20 +13,28 @@ interface ProtectedProps {
 export default function ProtectedRoute({ children }: ProtectedProps) {
   const currentPath = usePathname();
   const router = useRouter();
-  const { authUser, loading, initAuthListener } = useUserStore();
+  const { authUser, loading, initialized, initAuthListener } = useUserStore();
 
   useEffect(() => {
     const unsubscribe = initAuthListener();
     return () => unsubscribe?.();
-  }, []);
+  }, [initAuthListener]);
 
   useEffect(() => {
-    if (!loading && !authUser && currentPath !== "/auth/get-authed") {
+    if (
+      initialized &&
+      !loading &&
+      !authUser &&
+      currentPath !== "/auth/get-authed"
+    ) {
       router.push("/auth/get-authed");
     }
-  }, [loading, authUser, router]);
+  }, [initialized, loading, authUser, router, currentPath]);
 
-  if ((loading || !authUser) && currentPath !== "/auth/get-authed") {
+  if (
+    (!initialized || loading || !authUser) &&
+    currentPath !== "/auth/get-authed"
+  ) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader />
