@@ -147,21 +147,32 @@ export const useUserStore = create<UserStore>((set, get) => {
               userChannelRef.retryCount = 0;
             } else if (status === "CHANNEL_ERROR") {
               console.error("Realtime CHANNEL_ERROR for user", userId);
+
+              // no retyr after unsubscribed
+              if (userChannelRef.unsubscribed) {
+                console.log("Channel error after unsubscribe, ignoring");
+                return;
+              }
+
               // cleanup and retry
               clearChannel();
-              if (userChannelRef.retryCount < 5) {
+              if (userChannelRef.retryCount < 3) {
                 const delay = backoff(userChannelRef.retryCount);
                 userChannelRef.retryCount++;
+                console.log(
+                  `Retrying channel subscription in ${delay}ms (attempt ${userChannelRef.retryCount})`
+                );
                 userChannelRef.retryTimer = setTimeout(trySubscribe, delay);
               } else {
                 console.error("Max channel retry attempts reached.");
               }
             } else if (status === "CLOSED") {
               console.log("Realtime channel CLOSED for user", userId);
-              // clear ref
-              clearChannel();
+              // Only clear if not already cleaning up
+              if (!userChannelRef.unsubscribed) {
+                clearChannel();
+              }
             } else {
-              // other statuses
               console.debug("Realtime channel status:", status);
             }
           });

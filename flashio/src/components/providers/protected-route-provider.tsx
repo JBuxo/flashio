@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import Loader from "@/components/ui/loader";
@@ -14,6 +14,12 @@ export default function ProtectedRoute({ children }: ProtectedProps) {
   const currentPath = usePathname();
   const router = useRouter();
   const { authUser, loading, initialized, initAuthListener } = useUserStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ensure mounted bc of annnoying issue
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = initAuthListener();
@@ -21,7 +27,9 @@ export default function ProtectedRoute({ children }: ProtectedProps) {
   }, [initAuthListener]);
 
   useEffect(() => {
+    // after mounting
     if (
+      isMounted &&
       initialized &&
       !loading &&
       !authUser &&
@@ -29,12 +37,15 @@ export default function ProtectedRoute({ children }: ProtectedProps) {
     ) {
       router.push("/auth/get-authed");
     }
-  }, [initialized, loading, authUser, router, currentPath]);
+  }, [isMounted, initialized, loading, authUser, router, currentPath]);
 
-  if (
-    (!initialized || loading || !authUser) &&
-    currentPath !== "/auth/get-authed"
-  ) {
+  // Show loader
+  if (!isMounted || !initialized || loading || !authUser) {
+    //  allow the auth page
+    if (currentPath === "/auth/get-authed") {
+      return <>{children}</>;
+    }
+
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader />
