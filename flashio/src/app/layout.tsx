@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Londrina_Shadow, Londrina_Solid } from "next/font/google";
 import "./globals.css";
 import { RenderFlash } from "@/lib/show-flash";
-import ProtectedRoute from "@/components/providers/protected-route-provider";
 
 const londrinaShadow = Londrina_Shadow({
   variable: "--font-londrina-shadow",
@@ -36,10 +35,8 @@ export default function RootLayout({
         className={`${londrinaShadow.variable} ${londrinaSolid.variable} antialiased `}
         style={{ background: "var(--ray-color)" }}
       >
-        <ProtectedRoute>
-          {children}
-          <RenderFlash />
-        </ProtectedRoute>
+        {children}
+        <RenderFlash />
       </body>
     </html>
   );
