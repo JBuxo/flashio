@@ -255,14 +255,17 @@ export const useUserStore = create<UserStore>((set, get) => {
 
   const startRealtimeFor = async (uid: string) => {
     console.log("startRealtimeFor called with userId:", uid);
+
+    // NEW: add check for channel + unsubscribed
     if (
       get()._channelUserId === uid &&
       userChannelRef.channel &&
       !userChannelRef.unsubscribed
     ) {
-      console.log("Already running realtime for this user");
+      console.log("Realtime already active for this user, skipping subscribe");
       return;
     }
+
     await subscribeToUser(uid);
   };
 
@@ -292,18 +295,18 @@ export const useUserStore = create<UserStore>((set, get) => {
           const { data } = await supabaseClient.auth.getUser();
           const currentUser = (data.user as User | null) ?? null;
           console.log("Initial user fetched:", currentUser);
-          const changed = safeSetAuthUser(currentUser);
+          // const changed = safeSetAuthUser(currentUser);
+          const prevUser = get().authUser;
 
-          if (currentUser) {
-            get()
-              .fetchUserData()
-              .catch((e) => console.error("Initial fetchUserData error:", e));
-            delayPromise = new Promise((resolve) => setTimeout(resolve, 1000));
-            await delayPromise;
-            if (!cleanupCalled) await startRealtimeFor(currentUser.id);
+          if (!currentUser || prevUser?.id !== currentUser.id) {
+            if (currentUser) {
+              await get().fetchUserData();
+              await startRealtimeFor(currentUser.id);
+            } else {
+              stopChannel();
+            }
           } else {
-            stopChannel();
-            set({ _channelUserId: undefined });
+            console.log("TOKEN_REFRESHED ignored, user ID unchanged");
           }
         } catch (err) {
           console.error("initAuthListener initial getUser failed:", err);
